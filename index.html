@@ -446,6 +446,15 @@ select.color-pick{padding:6px;}
   <section class="view" id="view-equipment">
     <h2 class="section-title">설비 관리</h2>
     <p class="section-sub">설비 목록을 추가·수정·삭제합니다. 설비를 삭제하면 해당 설비의 부동·보수 이력도 함께 삭제됩니다.</p>
+
+    <div class="panel" id="adminApprovalPanel" style="display:none;">
+      <div class="panel-head"><h3>🔐 가입 승인 관리</h3><span class="hint">관리자에게만 보이는 화면입니다</span></div>
+      <table>
+        <thead><tr><th>아이디</th><th style="width:130px">가입일시</th><th style="width:80px">상태</th><th style="width:100px">처리</th></tr></thead>
+        <tbody id="adminUserTableBody"></tbody>
+      </table>
+    </div>
+
     <div class="panel">
       <div class="panel-head"><h3>＋ 새 설비 추가</h3></div>
       <form class="inline-form" id="eqAddForm" style="grid-template-columns:1fr 2fr 140px auto;">
@@ -479,7 +488,7 @@ select.color-pick{padding:6px;}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, writeBatch, query, orderBy, limit
+    getFirestore, collection, doc, setDoc, deleteDoc, getDocs, getDoc, onSnapshot, writeBatch, query, orderBy, limit
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import {
     getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged,
@@ -501,7 +510,7 @@ select.color-pick{padding:6px;}
   setPersistence(auth, browserLocalPersistence).catch(err=>console.error("persistence error:", err));
 
   window.__firebase = {
-    db, auth, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, writeBatch, query, orderBy, limit,
+    db, auth, collection, doc, setDoc, deleteDoc, getDocs, getDoc, onSnapshot, writeBatch, query, orderBy, limit,
     onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
   };
   window.dispatchEvent(new Event("firebase-ready"));
@@ -3441,14 +3450,20 @@ async function revertHistory(historyId){
   }
 }
 
-/* ============================= 로그인 / 인증 ============================= */
+/* ============================= 로그인 / 인증 (가입 승인제) ============================= */
+const ADMIN_USERNAMES = ["qudehqkr"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
+
 function setAuthMode(mode){
   document.querySelectorAll(".auth-tab").forEach(b=> b.classList.toggle("active", b.dataset.mode===mode));
   document.getElementById("authSubmitBtn").textContent = mode==="login" ? "로그인" : "회원가입";
   document.getElementById("authForm").dataset.mode = mode;
   document.getElementById("authError").textContent = "";
+  document.getElementById("authError").style.color = "";
 }
 function usernameToEmail(id){ return id.trim().toLowerCase() + "@kcc-gapyeong.local"; }
+function fsUserDoc(fb, uid){ return fb.doc(fb.db, "users", uid); }
+function fsUserCol(fb){ return fb.collection(fb.db, "users"); }
+
 function authErrorMessage(err){
   const code = (err && err.code) || "";
   if(code.includes("user-not-found")) return "존재하지 않는 아이디입니다. 회원가입을 먼저 해주세요.";
@@ -3457,25 +3472,50 @@ function authErrorMessage(err){
   if(code.includes("weak-password")) return "비밀번호는 6자 이상이어야 합니다.";
   return "오류가 발생했습니다 (" + code + ")";
 }
-function showApp(user){
+function showApp(user, username){
   document.getElementById("authOverlay").style.display = "none";
   document.getElementById("appShell").style.display = "";
   const el = document.getElementById("currentUserLabel");
-  if(el) el.textContent = "👤 " + (user.email ? user.email.split("@")[0] : "");
+  if(el) el.textContent = "👤 " + (username || (user.email ? user.email.split("@")[0] : ""));
+  renderAdminPanel();
 }
 function showLogin(){
   document.getElementById("authOverlay").style.display = "flex";
   document.getElementById("appShell").style.display = "none";
 }
+function showAuthMessage(text, isError){
+  const el = document.getElementById("authError");
+  el.textContent = text;
+  el.style.color = isError===false ? "var(--green)" : "var(--red)";
+}
+
+async function checkApprovalAndEnter(user){
+  const fb = window.__firebase;
+  try{
+    const snap = await fb.getDoc(fsUserDoc(fb, user.uid));
+    if(!snap.exists() || snap.data().approved !== true){
+      await fb.signOut(fb.auth);
+      showAuthMessage("관리자 승인 대기 중입니다. 승인 후 로그인해주세요.", true);
+      return;
+    }
+    window.__currentUser = user;
+    window.__currentUsername = snap.data().username || user.email.split("@")[0];
+    showApp(user, window.__currentUsername);
+    startFirebaseSync();
+  }catch(err){
+    console.error(err);
+    showAuthMessage("승인 상태 확인 중 오류가 발생했습니다.", true);
+  }
+}
+
 function initAuthListener(){
   const fb = window.__firebase;
   fb.onAuthStateChanged(fb.auth, (user)=>{
     if(user){
-      window.__currentUser = user;
-      showApp(user);
-      startFirebaseSync();
+      checkApprovalAndEnter(user);
     } else {
       window.__currentUser = null;
+      window.__currentUsername = null;
       showLogin();
     }
   });
@@ -3487,29 +3527,91 @@ function startAuthWatch(){
 document.getElementById("authForm").addEventListener("submit", async function(ev){
   ev.preventDefault();
   const fb = window.__firebase;
-  if(!fb){ document.getElementById("authError").textContent = "Firebase 연결 중입니다. 잠시 후 다시 시도해주세요."; return; }
+  if(!fb){ showAuthMessage("Firebase 연결 중입니다. 잠시 후 다시 시도해주세요.", true); return; }
   const mode = this.dataset.mode || "login";
   const id = document.getElementById("authId").value.trim();
   const pw = document.getElementById("authPw").value;
-  const errEl = document.getElementById("authError");
-  errEl.textContent = "";
-  if(!/^[a-zA-Z0-9_]{3,20}$/.test(id)){ errEl.textContent = "아이디는 영문/숫자 3~20자로 입력해주세요."; return; }
-  if(pw.length < 6){ errEl.textContent = "비밀번호는 6자 이상이어야 합니다."; return; }
+  showAuthMessage("", true);
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(id)){ showAuthMessage("아이디는 영문/숫자 3~20자로 입력해주세요.", true); return; }
+  if(pw.length < 6){ showAuthMessage("비밀번호는 6자 이상이어야 합니다.", true); return; }
   const email = usernameToEmail(id);
   try{
     if(mode==="login"){
       await fb.signInWithEmailAndPassword(fb.auth, email, pw);
+      // onAuthStateChanged가 승인 여부를 확인합니다
     } else {
-      await fb.createUserWithEmailAndPassword(fb.auth, email, pw);
+      const cred = await fb.createUserWithEmailAndPassword(fb.auth, email, pw);
+      const isFirstAdmin = ADMIN_USERNAMES.includes(id.toLowerCase());
+      await fb.setDoc(fsUserDoc(fb, cred.user.uid), {
+        username: id, approved: isFirstAdmin, createdAt: Date.now()
+      });
+      await fb.signOut(fb.auth);
+      if(isFirstAdmin){
+        showAuthMessage("관리자 계정으로 가입되었습니다. 로그인해주세요.", false);
+      } else {
+        showAuthMessage("가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.", false);
+      }
+      setAuthMode("login");
     }
   }catch(err){
-    errEl.textContent = authErrorMessage(err);
+    showAuthMessage(authErrorMessage(err), true);
   }
 });
 document.getElementById("btnLogout").addEventListener("click", async ()=>{
   const fb = window.__firebase;
   if(fb) await fb.signOut(fb.auth);
 });
+
+/* ---- 관리자: 가입 승인 관리 ---- */
+function isCurrentUserAdmin(){
+  return window.__currentUsername && ADMIN_USERNAMES.includes(window.__currentUsername.toLowerCase());
+}
+function renderAdminPanel(){
+  const panel = document.getElementById("adminApprovalPanel");
+  if(!panel) return;
+  if(!isCurrentUserAdmin()){ panel.style.display = "none"; return; }
+  panel.style.display = "";
+  const fb = window.__firebase;
+  if(!fb || window.__userListSubscribed) return;
+  window.__userListSubscribed = true;
+  fb.onSnapshot(fsUserCol(fb), (snap)=>{
+    const users = [];
+    snap.forEach(d=> users.push({id:d.id, ...d.data()}));
+    window.__allUsers = users;
+    renderAdminUserTable();
+  }, err=> console.error("사용자 목록 동기화 오류:", err));
+}
+function renderAdminUserTable(){
+  const tbody = document.getElementById("adminUserTableBody");
+  if(!tbody) return;
+  const users = (window.__allUsers||[]).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(users.length===0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">가입한 사용자가 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = users.map(u=>{
+    const dt = u.createdAt ? new Date(u.createdAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
+    const statusChip = u.approved ? `<span class="chip chip-green">승인됨</span>` : `<span class="chip chip-amber">대기중</span>`;
+    return `<tr>
+      <td>${escapeHtml(u.username||u.id)}</td>
+      <td>${dt}</td>
+      <td>${statusChip}</td>
+      <td>${u.approved
+        ? (ADMIN_USERNAMES.includes((u.username||"").toLowerCase()) ? "" : `<button class="btn btn-danger btn-sm" onclick="setUserApproval('${u.id}',false)">승인 취소</button>`)
+        : `<button class="btn btn-outline btn-sm" onclick="setUserApproval('${u.id}',true)">승인</button>`}</td>
+    </tr>`;
+  }).join("");
+}
+async function setUserApproval(uid, approved){
+  const fb = window.__firebase;
+  if(!fb) return;
+  try{
+    await fb.setDoc(fsUserDoc(fb, uid), {approved}, {merge:true});
+  }catch(err){
+    console.error(err);
+    alert("승인 상태 변경에 실패했습니다: " + err.message);
+  }
+}
 
 function applyProcessLabels(){
   const label = PROCESS_LABELS[currentProcess];
