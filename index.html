@@ -3451,7 +3451,7 @@ async function revertHistory(historyId){
 }
 
 /* ============================= 로그인 / 인증 (가입 승인제) ============================= */
-const ADMIN_USERNAMES = ["qudehqkr"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
+const ADMIN_USERNAMES = ["byeongdodot"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
 
 function setAuthMode(mode){
   document.querySelectorAll(".auth-tab").forEach(b=> b.classList.toggle("active", b.dataset.mode===mode));
@@ -3511,6 +3511,7 @@ async function checkApprovalAndEnter(user){
 function initAuthListener(){
   const fb = window.__firebase;
   fb.onAuthStateChanged(fb.auth, (user)=>{
+    if(window.__signupInProgress) return; // 회원가입 처리 중에는 자동 승인체크를 건너뜁니다 (경쟁 상태 방지)
     if(user){
       checkApprovalAndEnter(user);
     } else {
@@ -3540,12 +3541,14 @@ document.getElementById("authForm").addEventListener("submit", async function(ev
       await fb.signInWithEmailAndPassword(fb.auth, email, pw);
       // onAuthStateChanged가 승인 여부를 확인합니다
     } else {
+      window.__signupInProgress = true;
       const cred = await fb.createUserWithEmailAndPassword(fb.auth, email, pw);
       const isFirstAdmin = ADMIN_USERNAMES.includes(id.toLowerCase());
       await fb.setDoc(fsUserDoc(fb, cred.user.uid), {
         username: id, approved: isFirstAdmin, createdAt: Date.now()
       });
       await fb.signOut(fb.auth);
+      window.__signupInProgress = false;
       if(isFirstAdmin){
         showAuthMessage("관리자 계정으로 가입되었습니다. 로그인해주세요.", false);
       } else {
@@ -3554,6 +3557,7 @@ document.getElementById("authForm").addEventListener("submit", async function(ev
       setAuthMode("login");
     }
   }catch(err){
+    window.__signupInProgress = false;
     showAuthMessage(authErrorMessage(err), true);
   }
 });
