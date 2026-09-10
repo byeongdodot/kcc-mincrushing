@@ -267,7 +267,25 @@ table{width:100%;border-collapse:collapse;font-size:13px;}
 .quick-diag-value{font-size:19px;font-weight:700;letter-spacing:-0.02em;margin-bottom:5px;line-height:1.3;}
 .quick-diag-sub{font-size:12.5px;color:var(--sub);line-height:1.5;}
 
+/* 예비품 관리 - HP/kW 범위 필터 */
+.filter-bar input[type=number]{width:70px;}
+.range-sep{color:var(--sub);font-size:12px;padding-bottom:8px;}
+
+/* ===== 현재 이슈 ===== */
+.issue-item{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:12px;
+}
+.issue-item-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.issue-item-head .issue-date{font-size:11.5px;color:var(--sub);}
+.issue-item textarea{
+  width:100%;border:none;background:transparent;font-size:14px;line-height:1.6;color:var(--ink);
+  resize:vertical;min-height:44px;overflow:hidden;font-family:inherit;padding:0;box-sizing:border-box;
+}
+.issue-item textarea:focus{outline:none;}
+
 footer.foot{text-align:center;color:var(--sub);font-size:11.5px;padding:26px 0 10px;}
+
 .badge-note{font-size:11px;color:var(--sub);background:#FAFAFB;border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:14px;}
 select.color-pick{padding:6px;}
 
@@ -367,16 +385,29 @@ select.color-pick{padding:6px;}
       <button class="proc-btn active" data-proc="crushing" onclick="switchProcess('crushing')">⛏️ 파쇄 공정</button>
     </div>
     <nav class="tabs">
+      <div class="tab active" data-tab="issues">📝 현재 이슈</div>
       <div class="tab" data-tab="downtime">📊 부동 관리</div>
       <div class="tab" data-tab="repair">🔧 보수 이력</div>
-      <div class="tab active" data-tab="analysis">📈 종합 분석</div>
-      <div class="tab" data-tab="equipment">⚙️ 설비 관리</div>
+      <div class="tab" data-tab="analysis">📈 종합 분석</div>
       <div class="tab" data-tab="spareparts">🔩 예비품 관리</div>
+      <div class="tab" data-tab="equipment">⚙️ 설비 관리</div>
     </nav>
   </div>
 </header>
 
 <main>
+
+  <!-- ===================== 현재 이슈 ===================== -->
+  <section class="view active" id="view-issues">
+    <h2 class="section-title">현재 이슈</h2>
+    <p class="section-sub">형식 없이 자유롭게 메모하는 공간입니다. 투자 검토, 개선 아이디어, 확인이 필요한 사항 등을 적어두세요.</p>
+
+    <div class="panel">
+      <button type="button" class="add-repair-btn" style="margin-top:0;" onclick="addIssue()">＋ 새 이슈 추가</button>
+    </div>
+
+    <div id="issuesList"></div>
+  </section>
 
   <!-- ===================== 부동 관리 ===================== -->
   <section class="view" id="view-downtime">
@@ -501,7 +532,7 @@ select.color-pick{padding:6px;}
   </section>
 
   <!-- ===================== 종합 분석 ===================== -->
-  <section class="view active" id="view-analysis">
+  <section class="view" id="view-analysis">
     <h2 class="section-title" id="analysisTitle">파쇄 설비 종합 분석</h2>
     <p class="section-sub">부동 + 보수 데이터 통합 비교 · COMPREHENSIVE ANALYSIS 2024–2026</p>
 
@@ -636,6 +667,22 @@ select.color-pick{padding:6px;}
           <label>구분 필터</label>
           <button type="button" class="btn btn-outline btn-sm" id="spFilterBtn">필터 선택 ▾</button>
           <div class="filter-dropdown" id="spFilterPanel" style="display:none;"></div>
+        </div>
+        <div class="field">
+          <label>HP</label>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <input type="number" id="spHpMin" placeholder="최소" step="0.1">
+            <span class="range-sep">~</span>
+            <input type="number" id="spHpMax" placeholder="최대" step="0.1">
+          </div>
+        </div>
+        <div class="field">
+          <label>kW</label>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <input type="number" id="spKwMin" placeholder="최소" step="0.1">
+            <span class="range-sep">~</span>
+            <input type="number" id="spKwMax" placeholder="최대" step="0.1">
+          </div>
         </div>
         <button type="button" class="btn btn-outline btn-sm" id="spFilterReset">필터 초기화</button>
         <span class="hint" id="spFilterResultHint" style="margin-left:auto;"></span>
@@ -6263,9 +6310,9 @@ function buildInitialState(){
     const actionText = [action, note].filter(Boolean).join(" / ");
     return {id: uid("dt"), date, hours, category, detail, desc, action: actionText};
   });
-  return { equipment, downtime };
+  return { equipment, downtime, issues: [] };
 }
-function buildEmptyState(){ return { equipment: [], downtime: [] }; }
+function buildEmptyState(){ return { equipment: [], downtime: [], issues: [] }; }
 
 /* ============================= 공정 (채광 / 파쇄) ============================= */
 const PROCESS_LABELS = { crushing: "파쇄", mining: "채광" };
@@ -6289,6 +6336,8 @@ function fsEquipDoc(fb, proc, id){ return fb.doc(fb.db, "processes", proc, "equi
 function fsDowntimeDoc(fb, proc, id){ return fb.doc(fb.db, "processes", proc, "downtime", id); }
 function fsHistoryCol(fb, proc){ return fb.collection(fb.db, "processes", proc, "history"); }
 function fsHistoryDoc(fb, proc, id){ return fb.doc(fb.db, "processes", proc, "history", id); }
+function fsIssuesCol(fb, proc){ return fb.collection(fb.db, "processes", proc, "issues"); }
+function fsIssuesDoc(fb, proc, id){ return fb.doc(fb.db, "processes", proc, "issues", id); }
 
 function currentUserLabel(){
   const u = window.__currentUser;
@@ -6327,6 +6376,18 @@ function deleteDowntimeFromFirestore(proc, id){
   const fb = window.__firebase;
   if(!fb) return;
   fb.deleteDoc(fsDowntimeDoc(fb, proc, id)).catch(err=> console.error("Firestore 부동 삭제 실패:", err));
+}
+function saveIssueToFirestore(proc, issue){
+  const fb = window.__firebase;
+  if(!fb) return;
+  fb.setDoc(fsIssuesDoc(fb, proc, issue.id), {
+    text: issue.text, createdAt: issue.createdAt, updatedAt: issue.updatedAt
+  }).catch(err=> console.error("Firestore 이슈 저장 실패:", err));
+}
+function deleteIssueFromFirestore(proc, id){
+  const fb = window.__firebase;
+  if(!fb) return;
+  fb.deleteDoc(fsIssuesDoc(fb, proc, id)).catch(err=> console.error("Firestore 이슈 삭제 실패:", err));
 }
 
 async function seedFirestoreCrushing(fb){
@@ -6443,6 +6504,14 @@ async function initFirebaseSync(){
         appState[proc].history = list;
         if(proc===currentProcess) renderHistoryTable();
       }, err=> console.error("history sync error:", err));
+
+      fb.onSnapshot(fsIssuesCol(fb, proc), (snap)=>{
+        const list = [];
+        snap.forEach(d=> list.push({id:d.id, ...d.data()}));
+        appState[proc].issues = list;
+        if(proc===currentProcess) renderIssues();
+        setSyncStatus("🟢 실시간 동기화 중", "#2F7D5A");
+      }, err=>{ console.error(err); setSyncStatus("⚠️ 동기화 오류", "#C0392B"); });
     });
   }catch(err){
     console.error(err);
@@ -6731,6 +6800,53 @@ function switchTab(name){
   document.getElementById("view-"+name).classList.add("active");
   if(name==="analysis") renderAnalysis();
   if(name==="spareparts") renderSpareParts();
+  if(name==="issues") renderIssues();
+}
+
+/* ============================= 현재 이슈 ============================= */
+function renderIssues(){
+  const list = document.getElementById("issuesList");
+  if(!list) return;
+  const issues = [...(state.issues||[])].sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
+  if(issues.length===0){
+    list.innerHTML = `<div class="panel"><p class="section-sub" style="margin:0;">등록된 이슈가 없습니다. 위 "＋ 새 이슈 추가" 버튼으로 메모를 남겨보세요.</p></div>`;
+    return;
+  }
+  list.innerHTML = issues.map(it=>{
+    const dt = new Date(it.updatedAt || it.createdAt || Date.now());
+    const dateStr = dt.toLocaleString("ko-KR", {year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"});
+    return `<div class="issue-item" data-iid="${it.id}">
+      <div class="issue-item-head">
+        <span class="issue-date">${dateStr} 수정</span>
+        <button class="del-btn" title="삭제" onclick="deleteIssue('${it.id}')">✕</button>
+      </div>
+      <textarea rows="1" oninput="autoGrow(this)" onchange="updateIssue('${it.id}', this.value)" placeholder="이슈 내용을 입력하세요">${escapeHtml(it.text||"")}</textarea>
+    </div>`;
+  }).join("");
+  list.querySelectorAll("textarea").forEach(autoGrow);
+}
+function addIssue(){
+  const now = Date.now();
+  const newIssue = {id: uid("is"), text:"", createdAt: now, updatedAt: now};
+  state.issues = state.issues || [];
+  state.issues.push(newIssue);
+  saveIssueToFirestore(currentProcess, newIssue);
+  renderIssues();
+  const el = document.querySelector(`.issue-item[data-iid="${newIssue.id}"] textarea`);
+  if(el) el.focus();
+}
+function updateIssue(id, text){
+  const it = (state.issues||[]).find(x=>x.id===id);
+  if(!it) return;
+  it.text = text;
+  it.updatedAt = Date.now();
+  saveIssueToFirestore(currentProcess, it);
+  renderIssues();
+}
+function deleteIssue(id){
+  state.issues = (state.issues||[]).filter(x=>x.id!==id);
+  deleteIssueFromFirestore(currentProcess, id);
+  renderIssues();
 }
 
 /* ============================= 부동 관리 ============================= */
@@ -7170,7 +7286,7 @@ function buildInitialSpareParts(){
   }));
 }
 let spareParts = buildInitialSpareParts();
-let spFilter = { selectedCats: null };
+let spFilter = { selectedCats: null, hpMin:null, hpMax:null, kwMin:null, kwMax:null };
 
 function fsSparePartsCol(fb){ return fb.collection(fb.db, "spareparts"); }
 function fsSparePartsDoc(fb, id){ return fb.doc(fb.db, "spareparts", id); }
@@ -7257,14 +7373,23 @@ function spFilterSelectNone(){ spFilter.selectedCats = new Set(); renderSparePar
 function spFilterByCat(cat){ spFilter.selectedCats = new Set([cat]); renderSpareParts(); }
 
 document.getElementById("spSearch").addEventListener("input", ()=>renderSpareParts());
+["spHpMin","spHpMax","spKwMin","spKwMax"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", function(){
+    const key = {spHpMin:"hpMin", spHpMax:"hpMax", spKwMin:"kwMin", spKwMax:"kwMax"}[id];
+    const v = this.value.trim();
+    spFilter[key] = v==="" ? null : parseFloat(v);
+    renderSpareParts();
+  });
+});
 document.getElementById("spFilterBtn").addEventListener("click", function(ev){
   ev.stopPropagation();
   const panel = document.getElementById("spFilterPanel");
   panel.style.display = panel.style.display==="none" ? "block" : "none";
 });
 document.getElementById("spFilterReset").addEventListener("click", function(){
-  spFilter = { selectedCats:null };
+  spFilter = { selectedCats:null, hpMin:null, hpMax:null, kwMin:null, kwMax:null };
   document.getElementById("spSearch").value = "";
+  ["spHpMin","spHpMax","spKwMin","spKwMax"].forEach(id=> document.getElementById(id).value = "");
   renderSpareParts();
 });
 document.addEventListener("click", function(ev){
@@ -7326,6 +7451,18 @@ function renderSpareParts(){
       const hay = [r.name,r.tag,r.part,r.bearing,r.company].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
+    if(spFilter.hpMin!==null || spFilter.hpMax!==null){
+      const hp = parseFloat(r.hp);
+      if(isNaN(hp)) return false;
+      if(spFilter.hpMin!==null && hp < spFilter.hpMin) return false;
+      if(spFilter.hpMax!==null && hp > spFilter.hpMax) return false;
+    }
+    if(spFilter.kwMin!==null || spFilter.kwMax!==null){
+      const kw = parseFloat(r.kw);
+      if(isNaN(kw)) return false;
+      if(spFilter.kwMin!==null && kw < spFilter.kwMin) return false;
+      if(spFilter.kwMax!==null && kw > spFilter.kwMax) return false;
+    }
     return true;
   });
   const tbody = document.getElementById("spTableBody");
@@ -7354,7 +7491,7 @@ function renderSpareParts(){
     }).join("");
   }
   document.getElementById("spCountHint").textContent = spareParts.length + "건";
-  const isFiltered = spFilter.selectedCats!==null || q;
+  const isFiltered = spFilter.selectedCats!==null || q || spFilter.hpMin!==null || spFilter.hpMax!==null || spFilter.kwMin!==null || spFilter.kwMax!==null;
   document.getElementById("spFilterResultHint").textContent = isFiltered ? `필터 결과: ${filtered.length}건 / 전체 ${spareParts.length}건` : "";
 }
 
@@ -7731,10 +7868,13 @@ document.getElementById("fileImport").addEventListener("change", function(){
       if(data.crushing && data.mining){
         // 신규 포맷: 채광 + 파쇄 둘 다 포함
         appState = data;
+        if(!appState.crushing.issues) appState.crushing.issues = [];
+        if(!appState.mining.issues) appState.mining.issues = [];
         state = appState[currentProcess];
         if(Array.isArray(data.spareParts)) spareParts = data.spareParts;
       } else if(data.equipment){
         // 구버전 포맷: 현재 보고 있는 공정에만 반영
+        if(!data.issues) data.issues = [];
         appState[currentProcess] = data;
         state = appState[currentProcess];
       } else {
@@ -7757,12 +7897,16 @@ function escapeAttr(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<"
 /* ============================= 초기화 ============================= */
 function renderAll(rebuildAnalysis){
   refreshColorPick();
+  renderIssues();
   renderDowntime();
   renderRepairSide();
   renderRepairDetail();
   renderEquipmentTable();
   if(document.getElementById("view-analysis").classList.contains("active") || rebuildAnalysis){
     renderAnalysis();
+  }
+  if(document.getElementById("view-spareparts").classList.contains("active")){
+    renderSpareParts();
   }
 }
 renderAll(false);
