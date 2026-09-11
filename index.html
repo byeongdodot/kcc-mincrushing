@@ -180,6 +180,7 @@ form.inline-form{display:grid;grid-template-columns:140px 1fr 110px 2fr auto;gap
 table{width:100%;border-collapse:collapse;font-size:13px;}
 .table-compact{table-layout:fixed;}
 .table-compact th, .table-compact td{padding:6px 5px;font-size:11.5px;}
+.table-compact thead th{white-space:normal;line-height:1.25;word-break:keep-all;vertical-align:bottom;}
 .table-compact input, .table-compact select{padding:4px 5px;font-size:11.5px;}
 
 /* 보수이력 - 설비 카드 (레거시, 예비품 등에서 재사용) */
@@ -283,6 +284,45 @@ table{width:100%;border-collapse:collapse;font-size:13px;}
   resize:vertical;min-height:44px;overflow:hidden;font-family:inherit;padding:0;box-sizing:border-box;
 }
 .issue-item textarea:focus{outline:none;}
+
+/* ===== 인버터: 제원 메모 아이콘 ===== */
+.memo-btn{
+  border:1px solid var(--border);background:#fff;cursor:pointer;font-size:10.5px;font-weight:600;
+  padding:4px 6px;border-radius:6px;flex:none;color:var(--sub);white-space:nowrap;
+}
+.memo-btn:hover{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+.memo-btn.has-memo{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+.spec-cell-wrap{display:flex;align-items:center;gap:4px;}
+.spec-cell-wrap input{flex:1;min-width:0;}
+
+/* ===== 교체 이력 배지 ===== */
+.hist-badge{
+  border:1px solid var(--border);background:#fff;border-radius:980px;padding:4px 10px;font-size:11.5px;
+  font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;
+}
+.hist-badge:hover{background:var(--amber-bg);border-color:var(--amber);}
+.hist-badge.has-hist{background:var(--amber-bg);color:var(--amber);border-color:var(--amber);}
+.full-btn{width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+
+/* ===== 모달 (교체 이력 팝업) ===== */
+.modal-overlay{
+  position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.35); padding:20px;
+}
+.modal-box{
+  background:#fff; border-radius:18px; padding:22px 24px; width:100%; max-width:420px;
+  box-shadow:0 24px 60px rgba(0,0,0,.25); max-height:80vh; overflow-y:auto;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal-head h3{margin:0;font-size:15px;font-weight:700;}
+.hist-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.hist-row input[type=date]{flex:1;}
+.hist-row-block{margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed #EEF0F3;}
+.hist-row-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.hist-row-block textarea{
+  width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;
+  line-height:1.5;font-family:inherit;resize:vertical;min-height:44px;box-sizing:border-box;overflow:hidden;
+}
 
 footer.foot{text-align:center;color:var(--sub);font-size:11.5px;padding:26px 0 10px;}
 
@@ -637,84 +677,187 @@ select.color-pick{padding:6px;}
 
   <!-- ===================== 예비품 관리 ===================== -->
   <section class="view" id="view-spareparts">
-    <h2 class="section-title">예비품(모터) 관리</h2>
-    <p class="section-sub">공장 전체 모터·설비 예비품 리스트입니다. 채광/파쇄 공정 구분과 무관하게 공용으로 관리됩니다. 모든 셀은 클릭해서 바로 수정할 수 있습니다.</p>
+    <h2 class="section-title">예비품 관리</h2>
+    <p class="section-sub">공장 전체 예비품 리스트입니다. 채광/파쇄 공정 구분과 무관하게 공용으로 관리됩니다. 모든 셀은 클릭해서 바로 수정할 수 있습니다.</p>
 
-    <div class="stat-grid" id="spCategoryStats"></div>
-
-    <div class="panel">
-      <div class="panel-head"><h3>＋ 새 품목 추가</h3></div>
-      <form class="inline-form" id="spAddForm" style="grid-template-columns:140px 140px 1fr auto;">
-        <div class="field"><label>구분</label><input type="text" list="spCatList" id="spNewCat" placeholder="예: 파쇄" required></div>
-        <div class="field"><label>세부구분</label><input type="text" id="spNewSub" placeholder="예: 상부"></div>
-        <div class="field"><label>설비명</label><input type="text" id="spNewName" placeholder="설비명" required></div>
-        <button type="submit" class="btn btn-outline">추가</button>
-      </form>
-      <datalist id="spCatList"></datalist>
+    <div class="process-switch">
+      <button class="proc-btn active" data-sptab="motor" onclick="switchSpareTab('motor')">⚙️ 모터 (코일·펌프류)</button>
+      <button class="proc-btn" data-sptab="inverter" onclick="switchSpareTab('inverter')">🔌 인버터</button>
     </div>
 
-    <div class="panel">
-      <div class="panel-head">
-        <h3>예비품 목록</h3>
-        <span class="hint" id="spCountHint"></span>
+    <div id="spMotorPanel">
+      <div class="stat-grid" id="spCategoryStats"></div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>＋ 새 품목 추가</h3></div>
+        <form class="inline-form" id="spAddForm" style="grid-template-columns:140px 140px 1fr auto;">
+          <div class="field"><label>구분</label><input type="text" list="spCatList" id="spNewCat" placeholder="예: 파쇄" required></div>
+          <div class="field"><label>세부구분</label><input type="text" id="spNewSub" placeholder="예: 상부"></div>
+          <div class="field"><label>설비명</label><input type="text" id="spNewName" placeholder="설비명" required></div>
+          <button type="submit" class="btn btn-outline">추가</button>
+        </form>
+        <datalist id="spCatList"></datalist>
       </div>
-      <div class="filter-bar">
-        <div class="field">
-          <label>검색</label>
-          <input type="text" id="spSearch" placeholder="설비명·TAG·제조번호 검색" style="min-width:220px;">
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>모터·펌프류 예비품 목록</h3>
+          <span class="hint" id="spCountHint"></span>
         </div>
-        <div class="field filter-dropdown-wrap">
-          <label>구분 필터</label>
-          <button type="button" class="btn btn-outline btn-sm" id="spFilterBtn">필터 선택 ▾</button>
-          <div class="filter-dropdown" id="spFilterPanel" style="display:none;"></div>
-        </div>
-        <div class="field">
-          <label>HP</label>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <input type="number" id="spHpMin" placeholder="최소" step="0.1">
-            <span class="range-sep">~</span>
-            <input type="number" id="spHpMax" placeholder="최대" step="0.1">
+        <div class="filter-bar">
+          <div class="field">
+            <label>검색</label>
+            <input type="text" id="spSearch" placeholder="설비명·TAG·제조번호 검색" style="min-width:220px;">
           </div>
-        </div>
-        <div class="field">
-          <label>kW</label>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <input type="number" id="spKwMin" placeholder="최소" step="0.1">
-            <span class="range-sep">~</span>
-            <input type="number" id="spKwMax" placeholder="최대" step="0.1">
+          <div class="field filter-dropdown-wrap">
+            <label>구분 필터</label>
+            <button type="button" class="btn btn-outline btn-sm" id="spFilterBtn">필터 선택 ▾</button>
+            <div class="filter-dropdown" id="spFilterPanel" style="display:none;"></div>
           </div>
+          <div class="field">
+            <label>HP</label>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <input type="number" id="spHpMin" placeholder="최소" step="0.1">
+              <span class="range-sep">~</span>
+              <input type="number" id="spHpMax" placeholder="최대" step="0.1">
+            </div>
+          </div>
+          <div class="field">
+            <label>kW</label>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <input type="number" id="spKwMin" placeholder="최소" step="0.1">
+              <span class="range-sep">~</span>
+              <input type="number" id="spKwMax" placeholder="최대" step="0.1">
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="spFilterReset">필터 초기화</button>
+          <span class="hint" id="spFilterResultHint" style="margin-left:auto;"></span>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" id="spFilterReset">필터 초기화</button>
-        <span class="hint" id="spFilterResultHint" style="margin-left:auto;"></span>
+        <div style="overflow-x:auto;">
+        <table class="table-compact">
+          <thead><tr>
+            <th style="width:56px">구분</th>
+            <th style="width:78px">세부구분</th>
+            <th style="width:168px">설비명</th>
+            <th style="width:42px">HP</th>
+            <th style="width:42px">KW</th>
+            <th style="width:38px">극수</th>
+            <th style="width:52px">전류</th>
+            <th style="width:52px">감속비</th>
+            <th style="width:64px">회사명</th>
+            <th style="width:150px">비고</th>
+            <th style="width:58px;background:#FFF8E5;">현재고</th>
+            <th style="width:48px;background:#FFF8E5;">등급</th>
+            <th style="width:88px;background:#FFF8E5;">재고위치</th>
+            <th style="width:88px;background:#FFF8E5;">사용처</th>
+            <th style="width:38px">삭제</th>
+          </tr></thead>
+          <tbody id="spTableBody"></tbody>
+        </table>
+        <p class="section-sub" style="margin-top:8px;">NO./TAG/제조번호/베어링 정보는 삭제되지 않고 데이터에는 남아있습니다 — 화면에서만 숨겼어요. 필요하시면 다시 보이게 해드릴 수 있습니다.</p>
+        </div>
       </div>
-      <div style="overflow-x:auto;">
-      <table class="table-compact">
-        <thead><tr>
-          <th style="width:56px">구분</th>
-          <th style="width:78px">세부구분</th>
-          <th style="width:168px">설비명</th>
-          <th style="width:42px">HP</th>
-          <th style="width:42px">KW</th>
-          <th style="width:38px">극수</th>
-          <th style="width:52px">전류</th>
-          <th style="width:52px">감속비</th>
-          <th style="width:64px">회사명</th>
-          <th style="width:150px">비고</th>
-          <th style="width:58px;background:#FFF8E5;">현재고</th>
-          <th style="width:48px;background:#FFF8E5;">등급</th>
-          <th style="width:88px;background:#FFF8E5;">재고위치</th>
-          <th style="width:88px;background:#FFF8E5;">사용처</th>
-          <th style="width:38px">삭제</th>
-        </tr></thead>
-        <tbody id="spTableBody"></tbody>
-      </table>
-      <p class="section-sub" style="margin-top:8px;">NO./TAG/제조번호/베어링 정보는 삭제되지 않고 데이터에는 남아있습니다 — 화면에서만 숨겼어요. 필요하시면 다시 보이게 해드릴 수 있습니다.</p>
+    </div>
+
+    <div id="spInverterPanel" style="display:none;">
+      <div class="stat-grid" id="ivCategoryStats"></div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>＋ 새 인버터 추가</h3></div>
+        <form class="inline-form" id="ivAddForm" style="grid-template-columns:120px 110px 1fr auto;">
+          <div class="field"><label>구분</label><input type="text" list="ivCatList" id="ivNewCat" placeholder="예: 파쇄" required></div>
+          <div class="field"><label>세부구분</label><input type="text" id="ivNewSub" placeholder="예: 50만톤"></div>
+          <div class="field"><label>설비명</label><input type="text" id="ivNewName" placeholder="예: 글로리홀상부휘더" required></div>
+          <button type="submit" class="btn btn-outline">추가</button>
+        </form>
+        <datalist id="ivCatList"></datalist>
+        <p class="section-sub" style="margin:10px 0 0;">나머지 항목(모델·제원·용량·예비품 등)은 추가 후 표에서 바로 입력하시면 됩니다.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>인버터 예비품 목록</h3>
+          <span class="hint" id="ivCountHint"></span>
+        </div>
+        <div class="filter-bar">
+          <div class="field">
+            <label>검색</label>
+            <input type="text" id="ivSearch" placeholder="설비명·모델·제조사 검색" style="min-width:220px;">
+          </div>
+          <div class="field filter-dropdown-wrap">
+            <label>구분 필터</label>
+            <button type="button" class="btn btn-outline btn-sm" id="ivFilterBtn">필터 선택 ▾</button>
+            <div class="filter-dropdown" id="ivFilterPanel" style="display:none;"></div>
+          </div>
+          <div class="field">
+            <label>설비 모터용량(kW)</label>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <input type="number" id="ivKwMin" placeholder="최소" step="0.1">
+              <span class="range-sep">~</span>
+              <input type="number" id="ivKwMax" placeholder="최대" step="0.1">
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="ivFilterReset">필터 초기화</button>
+          <span class="hint" id="ivFilterResultHint" style="margin-left:auto;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="table-compact">
+          <thead><tr>
+            <th style="width:70px">구분</th>
+            <th style="width:66px">세부구분</th>
+            <th style="width:150px">설비명</th>
+            <th style="width:80px">모델</th>
+            <th style="width:130px">제원</th>
+            <th style="width:48px">메모</th>
+            <th style="width:56px">제조사</th>
+            <th style="width:56px">인버터 허용[HP]</th>
+            <th style="width:52px">설비[HP]</th>
+            <th style="width:52px">설비[KW]</th>
+            <th style="width:44px;background:#FFF8E5;">예비품</th>
+            <th style="width:48px;background:#FFF8E5;">등급</th>
+            <th style="width:76px;background:#FFF8E5;">재고위치</th>
+            <th style="width:88px">수리여부</th>
+            <th style="width:64px">교체 이력</th>
+            <th style="width:120px">비고</th>
+            <th style="width:38px">삭제</th>
+          </tr></thead>
+          <tbody id="ivTableBody"></tbody>
+        </table>
+        </div>
       </div>
     </div>
   </section>
 
 </main>
 
+<!-- 인버터 교체 이력 팝업 -->
+<div id="histModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="histModalTitle">교체 이력</h3>
+      <button type="button" class="del-btn" onclick="closeHistModal()">✕</button>
+    </div>
+    <div id="histModalList"></div>
+    <button type="button" class="add-repair-btn" onclick="addHistDate()">＋ 날짜 추가</button>
+    <button type="button" class="btn btn-amber" style="width:100%;justify-content:center;margin-top:12px;" onclick="closeHistModal()">닫기</button>
+  </div>
+</div>
+
+<!-- 인버터 제원 메모 / 수리여부 편집 팝업 (여러 줄 입력 가능) -->
+<div id="textModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="textModalTitle">편집</h3>
+      <button type="button" class="del-btn" onclick="closeTextModal(false)">✕</button>
+    </div>
+    <p class="section-sub" id="textModalHint" style="margin:0 0 10px;"></p>
+    <textarea id="textModalInput" rows="6" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button type="button" class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="closeTextModal(false)">취소</button>
+      <button type="button" class="btn btn-amber" style="flex:1;justify-content:center;" onclick="closeTextModal(true)">저장</button>
+    </div>
+  </div>
+</div>
 
 <footer class="foot" id="footerText">파쇄 설비 관리 통합 시스템 · 2024–2026</footer>
 </div><!-- /appShell -->
@@ -1382,6 +1525,64 @@ const SEED_SPAREPARTS = [
 ["35만", "재자선&P2", "46", "에어레이터배출B/C#2", "", "5", "3.7", "4P", "7.5A", "30", "효성", "", "6307ZZ       6205ZZ", ""]
 ];
 const SPAREPART_CAT_META = {"G/H": {"label": "G/H", "color": "#BFE3F5"}, "파쇄": {"label": "파쇄", "color": "#D9EAD3"}, "건식창고": {"label": "건식창고", "color": "#F6C9DE"}, "50만": {"label": "50만", "color": "#FFF2AE"}, "35만": {"label": "35만", "color": "#C9DAF8"}, "유틸리티": {"label": "유틸리티", "color": "#F4B6AE"}};
+
+/* 인버터 시드 데이터: [구분, 세부구분, 설비명, 모델, 제원, 제조사, 인버터허용HP, 설비HP, 설비KW, 예비품(숫자), 비고, 교체이력(배열)] */
+const SEED_INVERTERS = [
+["채광","","글로리홀상부휘더","LS - iS7","SV0370iS7-4SO","LS","50","50","37",1,"△ : 상위 용량 인버터로 예비품 대체",["2026-06-22"],"W: 370mm\nH: 630\nD: 281.2"],
+["채광","","글로리홀수평휘더","LS - iS7","SV0370iS7-4SO","LS","50","40","30",0,"",[],"W: 370mm\nH: 630\nD: 281.2"],
+["채광","","글로리홀수평 환풍기","LS - H100","LSLV0370H100-4COFD(E)","LS","5","","",0,"",[],"W: 275mm\nH: 450\nD: 284"],
+["채광","","글로리홀수평B/C #2","LS - iS7","SV0370iS7-4SO","LS","50","50","37",1,"B급 가동 중",["2024-09-13"],"W: 370mm\nH: 630\nD: 281.2"],
+["파쇄","","파쇄 휘더","LS - iS7","SV0550IS7-4SO","LS","75","50","37",1,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["파쇄","","호퍼 배출 B/C","LS - iS7","SV0220IS7-4NO","LS","30","30","22",1,"",[],"W: 280mm\nH: 461.6\nD: 298"],
+["파쇄","","토분스크린","SMARTCON","FDS③ - 475S(소프트 스타터)","효성FEBA","75","50","37",1,"",["2024-06-19"],"정격용량: 56kW\n정격사용전류: 112A\nW: 257mm\nH: 249\nD: 417"],
+["선광","50만톤","50만 드라이집진기(1500)","LS - H100","LSLV1850H100-4COFD","LS","300","300","220",1,"",["2026-05-26"],"W: 380mm\nH: 705\nD: 396"],
+["선광","50만톤","P-204B 공정수 순환 Pump #5,#6 (구 씨크너 -> 콘크리트 탱크)","MOTORSOL","LSFS 4195 S 0200 (소프트 스타터)","LS","261.5","261.5","195",2,"",[],"W: 344mm\nH: 279\nD: 483\n\n적정모터용량: 195kW\n정격전압: 440V\n정격전류: 390A"],
+["선광","50만톤","50만 쿨러구동","LS - H100","LSLV1100H100-4COFD","LS","150","130","110",0,"△ : 상위 용량 인버터로 예비품 대체",["2025-02-25","2025-04-17"],"W: 300\nH: 706\nD: 386"],
+["선광","50만톤","50만 쿨러집진기(900)","LS - H100","LSLV1320H100-4COFD","LS","210","200","150",0,"△ : 상위 용량 인버터로 예비품 대체",[],"W: 300mm\nH: 706\nD: 386"],
+["선광","50만톤","50만 탈수기구동#1,2","LS - iS7","SV0055IS7-4ND","LS","7.5","7.5","5.5",1,"",[],"W: 370.1\nH: 663.5\nD:\n-DCR Type: 373.3\n-Non DCR Type: 312.4"],
+["선광","50만톤","50만 드라이바이패스#B/C 1","LS - iS7","SV0075IS7-4NOFD","LS","7.5","7.5","5.5",1,"",[],"W: 200mm\nH: 355\nD: 225"],
+["선광","50만톤","WATER SAND PUMP #1,2","LS - iS7","SV0055IS7-4SOD","LS","75","75","55",1,"",[],"W: 370.1\nH: 663.5\nD:\n-DCR Type: 373.3\n-Non DCR Type: 312.4"],
+["선광","50만톤","50만 드라이구동","LS - iG5A","SV2200iG5A-40L","LS","220","200","150",0,"△ : 상위 용량 인버터로 예비품 대체",["2025-10-21"],"W: 690mm\nH: 1078\nD: 449.6"],
+["선광","50만톤","구건식 리크라이머 버킷","LS - iG5A","SV150iG5A-4","LS","20","10","7.5",1,"",[],"W: 250mm\nH: 475.5\nD: 261.2"],
+["선광","50만톤","C/F룸 드럼구동","LS - iG5A","SV037iG5A-4","LS","5","","3.7",3,"",[],"W: 150mm\nH: 284\nD: 156.5"],
+["선광","50만톤","시약단 시약 이송 펌프(E-855)","LS - iG5A","SV015iG5A-4","LS","2","2","1.5",1,"",[],"W: 150mm\nH: 284\nD: 156.5"],
+["선광","50만톤","시약단 시약 이송 펌프(Nalco)","LS - iG5A","SV008iG5A-4","LS","1","1","0.75",1,"",[],"W: 150mm\nH: 284\nD: 156.5"],
+["선광","50만톤","C/F룸 드럼구동","MICROMASTER 440","XAHN08-000187 E-Stand (Version)","SIMENS","4","","",3,"",[],"Voltage: 380-480V\n3.0kW (4HP)"],
+["선광","50만톤","C/F룸 드럼구동","MICROMASTER 440","XAHN12-006151 E-Stand (Version)","SIMENS","10 (15HP 가변토크)","","",3,"",[],"Voltage: 380-480V\n7.5kW (10HP) \nVT(가변토크 시) 11kw(15HP)"],
+["선광","50만톤","C/F룸 드럼구동","POWER FLEX 40","Cat No. 22B-D012N104 SERIES A","AB","7.5","","",1,"",[],"정격용량: 7.5HP (5.5kW)\n정격전압: 480V 3상 50/60Hz\nW: 300\nH: 325\nD: 105.8"],
+["선광","50만톤","C/F룸 드럼구동","POWER FLEX 40","Cat No. 22B-D6P0N104 SERIES A","AB","3","","",3,"",[],"정격용량: 3HP (2.2kW)\n정격전압: 480V 3상 50/60Hz\nW: 214mm\nH: 250\nD: 94.3"],
+["선광","50만톤","C/F룸 드럼구동","POWER FLEX 40","Cat No. 22B-D6P0N104 SERIES A","AB","3","","",3,"",[],"정격용량: 3HP (2.2kW)\n정격전압: 480V 3상 50/60Hz\nW: 214mm\nH: 250\nD: 94.3"],
+["선광","50만톤","C/F룸 드럼구동","POWER FLEX 40","Cat No. 22B-D6P0N104 SERIES A","AB","3","","",3,"",[],"정격용량: 3HP (2.2kW)\n정격전압: 480V 3상 50/60Hz\nW: 214mm\nH: 250\nD: 94.3"],
+["선광","50만톤","50만 1#밀급광B/C","POWER FLEX 70","cat no. 20A D 022 A 0 AYNANCO SERIES A","AB","15","10","7.5",1,"",[],"정격용량: 15HP (11kW)\n정격전압: 480V 3상 60Hz\n\nFrame D\nW: 94.2mm\nH: 122.7\nD: 169"],
+["선광","50만톤","구건식 리크라이머트레버싱","POWER FLEX 70","cat no. 20A D 027 A 0 AYNANCO SERIES A","AB","20","10","7.5",0,"△ : 상위 용량 인버터로 예비품 대체",[],"정격용량: 20HP (15kW)\n정격전압: 480V 3상 60Hz\nFrame D\nW: 94.2mm\nH: 122.7\nD: 169"],
+["선광","50만톤","구건식 리크라이머트레벌링","POWER FLEX 70","cat no. 20A D 040 A 0 AYNANCO SERIES A","AB","30","10","7.5",1,"",[],"정격용량: 30HP (22kW)\n정격전압: 480V 3상 60Hz\nFrame D\nW: 94.2mm\nH: 122.7\nD: 169"],
+["선광","50만톤","신건식 SADDLE 트레버서","POWER FLEX 70","cat no. 20A D 022 A 0 AYNANCO SERIES A","AB","15","10","7.5",1,"",[],"정격용량: 15HP (11kW)\n정격전압: 480V 3상 60Hz\n\nFrame D\nW: 94.2mm\nH: 122.7\nD: 169"],
+["선광","50만톤","신건식 버킷 트레버서","POWER FLEX 70","cat no. 20A D 022 A 0 AYNANCO SERIES A","AB","15","10","7.5",1,"",[],"정격용량: 15HP (11kW)\n정격전압: 480V 3상 60Hz\n\nFrame D\nW: 94.2mm\nH: 122.7\nD: 169"],
+["선광","50만톤","신건식 버킷","POWER FLEX 70","cat no. 20A D 022 A 0 AYNANCO SERIES A","AB","15","30","22",1,"",[],"정격용량: 15HP (11kW)\n정격전압: 480V 3상 60Hz\n\nFrame D\nW: 94.2mm\nH: 122.7\nD: 169"],
+["선광","50만톤","씨크너 용수펌프","MOTOR STARTER","LSFS 419S S 0213","LS","260","213","160",1,"",[],""],
+["선광","50만톤","탈황설비","LS - iS7","SV0008iS7-4NOFD","LS","1","","0.75",4,"",[],"정격용량: 1HP (0.75kW)\n정격전압: 220V 3상 50~60Hz\n\nFRAME\nW:150mm\nH: 284\nD: 200"],
+["선광","50만톤","50만 2차자선집진기","POWER FLEX 400","cat no. 22C-D370A103 SERIES A","AB","300","255","190",1,"",[],"정격용량: 300HP (224kW)\n정격전압: 480V 3상 60Hz\n\nFrame H\nW:1364mm\nH: 529\nD: 359"],
+["선광","50만톤","50만 P2집진기(600)","POWER FLEX 400","cat no. 22C-D 142A103 SERIES A","AB","100","100","75",1,"",[],"정격용량: 100HP (100kW)\n정격전압: 480V 3상 50/60Hz\n\nFrame E\nW:700mm\nH: 250\nD: 350"],
+["선광","35만톤","50톤 분급기 OVERFLOW #1,2","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",2,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","35톤 드라이어 구동","LS - iS7","SV0900IS7-4SOD","LS","125","120","90",0,"",[],"W: 510mm\nH: 783.5\nD: 422.6"],
+["선광","35만톤","35만톤 드라이어 축로 블로워","LS - iS7","SV0750IS7-4SOD","LS","100","50","37",1,"A급 가동 중",["2024-12-05"],"W: 370.1mm\nH: 663.5\nD: \n-DCR Type: 373.3\n-Non DCR Type: 312.4"],
+["선광","35만톤","김천정사 집진기","LS - iS7","SV0550IS7-4SOD","LS","75","30","22",2,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","50만톤 스크린용 SandPump#1,2","LS - iS7","SV0550IS7-4SOD","LS","75","75","55",2,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","50만톤 밀 배광 SandPump #1","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",2,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","900㎥집진기브로워","LS - iS7","SV1100IS7-4SOD","LS","150","150","112.5",0,"△ : 상위 용량 인버터로 예비품 대체",[],"W: 510mm\nH: 783.5\nD: 422.6"],
+["선광","35만톤","쿨러 구동 O/S 펌프 #1호","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",2,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","탈수기 구동 #1,2번","LS - iS7","SV0550IS7-4SOD","LS","7.5","7.51","5.63",0,"25년 저장품 예산(인버터)으로 구매예정",["2024-03-07"],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","탈수기 HOPPER 배출 B/C","LS - iS7","SV0055IS7-4NO","LS","7.5","7.5","5.5",0,"25년 저장품 예산(인버터)으로 구매예정",["2024-03-07"],"W: 370.1\nH: 663.5\nD:\n-DCR Type: 373.3\n-Non DCR Type: 312.4"],
+["선광","35만톤","구씨크너 외부 판넬","LS - iS7","SV0075IS7-4NOFD","LS","7.5","7.5","5.5",2,"",[],"W: 200mm\nH: 355\nD: 225"],
+["선광","35만톤","씨크너 PUMP #1 (구 씨크너 -> FILTER ROOM)","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",4,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","씨크너 PUMP #2 (구 씨크너 -> FILTER ROOM)","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",4,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","Process water sand pump #1 (2 stage 습식자선기 → 3차 분급기)","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",4,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","Process water sand pump #1 (1 stage 습식자선기 → 2 stage 습식자선기)","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",4,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","Process water sand pump #1 (2차 분급기 → 탈철기)","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",4,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","Process water sand pump #2 (2차 분급기 → 탈철기)","LS - iS7","SV0550IS7-4SOD","LS","75","50","37",4,"",[],"W: 465mm\nH: 750\nD: 355.6"],
+["선광","35만톤","35,50만 탈수기 스크래퍼 #1,2,3,4","LS - iG5A","SV008iG5A-4","LS","1","1","0.75",4,"25년 저장품 예산(인버터)으로 구매예정",[],"W: 150mm\nH: 284\nD: 156.5"],
+["선광","35만톤","1100㎥집진기브로워","POWER FLEX 400","cat no. 22C-D370A103 SERIES A","AB","200","200","150",0,"△ : 상위 용량 인버터로 예비품 대체",[],"정격용량: 300HP (224kW)\n정격전압: 480V 3상 60Hz\n\nFrame H\nW:1364mm\nH: 529\nD: 359"]
+];
 
 const SEED_EQUIPMENT = [
 ["직투 1호 B/C","모터 15HP / 체인 #160 / 스프라켓 #160×17T×25T",[
@@ -6465,11 +6666,26 @@ async function initFirebaseSync(){
       setSyncStatus("🔄 예비품 데이터 업데이트 확인 중...");
       await migrateSparePartsIfNeeded(fb);
     }
+    const invertersSnap = await fb.getDocs(fsInvertersCol(fb));
+    if(invertersSnap.empty){
+      setSyncStatus("🔄 인버터 데이터 업로드 중...");
+      await seedFirestoreInverters(fb);
+      await fb.setDoc(fsInvertersMetaDoc(fb), {version: INVERTERS_SEED_VERSION});
+    } else {
+      await migrateInvertersIfNeeded(fb);
+    }
     fb.onSnapshot(fsSparePartsCol(fb), (snap)=>{
       const list = [];
       snap.forEach(d=> list.push({id:d.id, ...d.data()}));
       spareParts = list;
-      if(document.getElementById("view-spareparts").classList.contains("active")) renderSpareParts();
+      if(document.getElementById("view-spareparts").classList.contains("active") && activeSpareTab==="motor") renderSpareParts();
+      setSyncStatus("🟢 실시간 동기화 중", "#2F7D5A");
+    }, err=>{ console.error(err); setSyncStatus("⚠️ 동기화 오류", "#C0392B"); });
+    fb.onSnapshot(fsInvertersCol(fb), (snap)=>{
+      const list = [];
+      snap.forEach(d=> list.push({id:d.id, ...d.data()}));
+      inverters = list;
+      if(document.getElementById("view-spareparts").classList.contains("active") && activeSpareTab==="inverter") renderInverters();
       setSyncStatus("🟢 실시간 동기화 중", "#2F7D5A");
     }, err=>{ console.error(err); setSyncStatus("⚠️ 동기화 오류", "#C0392B"); });
 
@@ -6591,7 +6807,7 @@ async function revertHistory(historyId){
 }
 
 /* ============================= 로그인 / 인증 (가입 승인제) ============================= */
-const ADMIN_USERNAMES = ["bdpark7894"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
+const ADMIN_USERNAMES = ["byeongdodot"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
 
 function setAuthMode(mode){
   document.querySelectorAll(".auth-tab").forEach(b=> b.classList.toggle("active", b.dataset.mode===mode));
@@ -6799,7 +7015,7 @@ function switchTab(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   document.getElementById("view-"+name).classList.add("active");
   if(name==="analysis") renderAnalysis();
-  if(name==="spareparts") renderSpareParts();
+  if(name==="spareparts") switchSpareTab(activeSpareTab);
   if(name==="issues") renderIssues();
 }
 
@@ -7290,6 +7506,16 @@ function buildInitialSpareParts(){
 }
 let spareParts = buildInitialSpareParts();
 let spFilter = { selectedCats: null, hpMin:null, hpMax:null, kwMin:null, kwMax:null };
+function buildInitialInverters(){
+  return SEED_INVERTERS.map(r=>({
+    id: uid("iv"), cat:r[0], sub:r[1], name:r[2], model:r[3], spec:r[4], specNote:r[12]||"", maker:r[5],
+    invHp:r[6], equipHp:r[7], equipKw:r[8], spare:r[9], grade:"", location:"",
+    repairStatus:"", note:r[10], replacements: r[11].map(d=>({date:d, note:""}))
+  }));
+}
+let inverters = buildInitialInverters();
+let ivFilter = { selectedCats: null, kwMin:null, kwMax:null };
+let activeSpareTab = "motor";
 
 function fsSparePartsCol(fb){ return fb.collection(fb.db, "spareparts"); }
 function fsSparePartsDoc(fb, id){ return fb.doc(fb.db, "spareparts", id); }
@@ -7303,6 +7529,19 @@ function deleteSparePartFromFirestore(id){
   const fb = window.__firebase;
   if(!fb) return;
   fb.deleteDoc(fsSparePartsDoc(fb, id)).catch(err=> console.error("예비품 삭제 실패:", err));
+}
+function fsInvertersCol(fb){ return fb.collection(fb.db, "inverters"); }
+function fsInvertersDoc(fb, id){ return fb.doc(fb.db, "inverters", id); }
+function saveInverterToFirestore(iv){
+  const fb = window.__firebase;
+  if(!fb) return;
+  const {id, ...data} = iv;
+  fb.setDoc(fsInvertersDoc(fb, id), data).catch(err=> console.error("인버터 저장 실패:", err));
+}
+function deleteInverterFromFirestore(id){
+  const fb = window.__firebase;
+  if(!fb) return;
+  fb.deleteDoc(fsInvertersDoc(fb, id)).catch(err=> console.error("인버터 삭제 실패:", err));
 }
 const SPAREPARTS_SEED_VERSION = 2;
 function fsSparePartsMetaDoc(fb){ return fb.doc(fb.db, "meta", "spareparts"); }
@@ -7337,6 +7576,43 @@ async function seedFirestoreSpareParts(fb){
     });
     await b.commit();
   }
+}
+
+const INVERTERS_SEED_VERSION = 2;
+function fsInvertersMetaDoc(fb){ return fb.doc(fb.db, "meta", "inverters"); }
+async function seedFirestoreInverters(fb){
+  for(let i=0;i<SEED_INVERTERS.length;i+=450){
+    const chunk = SEED_INVERTERS.slice(i,i+450);
+    const b = fb.writeBatch(fb.db);
+    chunk.forEach((r,j)=>{
+      const id = "iv_seed_" + (i+j);
+      b.set(fsInvertersDoc(fb,id), {
+        cat:r[0], sub:r[1], name:r[2], model:r[3], spec:r[4], specNote:r[12]||"", maker:r[5],
+        invHp:r[6], equipHp:r[7], equipKw:r[8], spare:r[9], grade:"", location:"",
+        repairStatus:"", note:r[10], replacements: r[11].map(d=>({date:d, note:""}))
+      });
+    });
+    await b.commit();
+  }
+}
+async function migrateInvertersIfNeeded(fb){
+  const metaSnap = await fb.getDoc(fsInvertersMetaDoc(fb));
+  const currentVersion = metaSnap.exists() ? (metaSnap.data().version||0) : 0;
+  if(currentVersion >= INVERTERS_SEED_VERSION) return false;
+  if(currentVersion < 2){
+    // 기존에 이미 시드된 데이터에는 제원 메모(specNote)만 덧붙여 채웁니다 (다른 편집 내용은 보존)
+    for(let i=0;i<SEED_INVERTERS.length;i+=450){
+      const chunk = SEED_INVERTERS.slice(i,i+450);
+      const b = fb.writeBatch(fb.db);
+      chunk.forEach((r,j)=>{
+        const id = "iv_seed_" + (i+j);
+        b.set(fsInvertersDoc(fb,id), {specNote: r[12]||""}, {merge:true});
+      });
+      await b.commit();
+    }
+  }
+  await fb.setDoc(fsInvertersMetaDoc(fb), {version: INVERTERS_SEED_VERSION});
+  return true;
 }
 
 function getAllSpCats(){ return koSort([...new Set(spareParts.map(r=>r.cat||"기타"))]); }
@@ -7485,6 +7761,7 @@ function renderSpareParts(){
             <option value="" ${!r.grade?"selected":""}>-</option>
             <option value="A" ${r.grade==="A"?"selected":""}>A급</option>
             <option value="B" ${r.grade==="B"?"selected":""}>B급</option>
+            <option value="고장" ${r.grade==="고장"?"selected":""}>고장</option>
           </select>
         </td>
         <td style="background:#FFFBEF;"><input type="text" value="${escapeAttr(r.location||"")}" onchange="updateSparePart('${r.id}','location',this.value)"></td>
@@ -7497,6 +7774,264 @@ function renderSpareParts(){
   const isFiltered = spFilter.selectedCats!==null || q || spFilter.hpMin!==null || spFilter.hpMax!==null || spFilter.kwMin!==null || spFilter.kwMax!==null;
   document.getElementById("spFilterResultHint").textContent = isFiltered ? `필터 결과: ${filtered.length}건 / 전체 ${spareParts.length}건` : "";
 }
+
+/* ---- 예비품 관리: 모터 / 인버터 서브탭 전환 ---- */
+function switchSpareTab(name){
+  activeSpareTab = name;
+  document.querySelectorAll("[data-sptab]").forEach(b=> b.classList.toggle("active", b.dataset.sptab===name));
+  document.getElementById("spMotorPanel").style.display = name==="motor" ? "" : "none";
+  document.getElementById("spInverterPanel").style.display = name==="inverter" ? "" : "none";
+  if(name==="motor") renderSpareParts(); else renderInverters();
+}
+
+/* ---- 인버터 예비품 관리 ---- */
+function getAllIvCats(){ return koSort([...new Set(inverters.map(r=>r.cat||"기타"))]); }
+function ivCatColor(cat){ return (SPAREPART_CAT_META[cat] && SPAREPART_CAT_META[cat].color) || "#E5E7EB"; }
+
+function refreshIvCategoryList(){
+  const el = document.getElementById("ivCatList");
+  if(el) el.innerHTML = getAllIvCats().map(c=>`<option value="${escapeAttr(c)}">`).join("");
+}
+
+function buildIvFilterPanel(){
+  const panel = document.getElementById("ivFilterPanel");
+  if(!panel) return;
+  const cats = getAllIvCats();
+  const selected = ivFilter.selectedCats;
+  panel.innerHTML = `
+    <div class="filter-actions">
+      <button type="button" onclick="ivFilterSelectAll()">전체 선택</button>
+      <button type="button" onclick="ivFilterSelectNone()">전체 해제</button>
+    </div>
+    <div class="filter-list">${cats.map(c=>{
+      const checked = (selected===null || selected.has(c)) ? "checked" : "";
+      return `<label><input type="checkbox" value="${escapeAttr(c)}" ${checked} onchange="ivFilterToggle(this.value, this.checked)"><span class="swatch" style="background:${ivCatColor(c)};width:9px;height:9px;border-radius:3px;display:inline-block;"></span> ${escapeHtml(c)}</label>`;
+    }).join("")}</div>
+  `;
+  const btn = document.getElementById("ivFilterBtn");
+  const activeCount = selected===null ? cats.length : selected.size;
+  btn.textContent = (selected===null ? "필터 선택 ▾" : `필터 선택 (${activeCount}/${cats.length}) ▾`);
+}
+function ivFilterToggle(cat, checked){
+  if(ivFilter.selectedCats===null) ivFilter.selectedCats = new Set(getAllIvCats());
+  if(checked) ivFilter.selectedCats.add(cat); else ivFilter.selectedCats.delete(cat);
+  renderInverters();
+}
+function ivFilterSelectAll(){ ivFilter.selectedCats = null; renderInverters(); }
+function ivFilterSelectNone(){ ivFilter.selectedCats = new Set(); renderInverters(); }
+function ivFilterByCat(cat){ ivFilter.selectedCats = new Set([cat]); renderInverters(); }
+
+document.getElementById("ivSearch").addEventListener("input", ()=>renderInverters());
+["ivKwMin","ivKwMax"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", function(){
+    const key = {ivKwMin:"kwMin", ivKwMax:"kwMax"}[id];
+    const v = this.value.trim();
+    ivFilter[key] = v==="" ? null : parseFloat(v);
+    renderInverters();
+  });
+});
+document.getElementById("ivFilterBtn").addEventListener("click", function(ev){
+  ev.stopPropagation();
+  const panel = document.getElementById("ivFilterPanel");
+  panel.style.display = panel.style.display==="none" ? "block" : "none";
+});
+document.getElementById("ivFilterReset").addEventListener("click", function(){
+  ivFilter = { selectedCats:null, kwMin:null, kwMax:null };
+  document.getElementById("ivSearch").value = "";
+  ["ivKwMin","ivKwMax"].forEach(id=> document.getElementById(id).value = "");
+  renderInverters();
+});
+document.addEventListener("click", function(ev){
+  const panel = document.getElementById("ivFilterPanel");
+  const btn = document.getElementById("ivFilterBtn");
+  if(panel && panel.style.display!=="none" && !panel.contains(ev.target) && ev.target!==btn){
+    panel.style.display = "none";
+  }
+});
+document.getElementById("ivAddForm").addEventListener("submit", function(ev){
+  ev.preventDefault();
+  const cat = document.getElementById("ivNewCat").value.trim();
+  const sub = document.getElementById("ivNewSub").value.trim();
+  const name = document.getElementById("ivNewName").value.trim();
+  if(!cat || !name) return;
+  const newRow = {id:uid("iv"), cat, sub, name, model:"", spec:"", specNote:"", maker:"",
+    invHp:"", equipHp:"", equipKw:"", spare:0, grade:"", location:"", repairStatus:"", note:"", replacements:[]};
+  inverters.push(newRow);
+  saveInverterToFirestore(newRow);
+  this.reset();
+  renderInverters();
+});
+
+function updateInverter(id, field, value){
+  const r = inverters.find(x=>x.id===id);
+  if(!r) return;
+  r[field] = value;
+  saveInverterToFirestore(r);
+  if(field==="cat") renderInverters();
+}
+function deleteInverter(id){
+  if(!confirm("이 인버터 항목을 삭제하시겠습니까?")) return;
+  inverters = inverters.filter(x=>x.id!==id);
+  deleteInverterFromFirestore(id);
+  renderInverters();
+}
+
+/* ---- 인버터: 제원 메모 / 수리여부 편집 팝업 (여러 줄 입력 가능) ---- */
+let textModalTarget = null; // {id, field}
+function openTextModal(id, field, title, hint){
+  const r = inverters.find(x=>x.id===id);
+  if(!r) return;
+  textModalTarget = {id, field};
+  document.getElementById("textModalTitle").textContent = title + " — " + r.name;
+  document.getElementById("textModalHint").textContent = hint || "";
+  document.getElementById("textModalInput").value = r[field] || "";
+  document.getElementById("textModalOverlay").style.display = "flex";
+  setTimeout(()=> document.getElementById("textModalInput").focus(), 0);
+}
+function closeTextModal(save){
+  if(save && textModalTarget){
+    const val = document.getElementById("textModalInput").value;
+    updateInverter(textModalTarget.id, textModalTarget.field, val);
+  }
+  document.getElementById("textModalOverlay").style.display = "none";
+  textModalTarget = null;
+  renderInverters();
+}
+
+/* ---- 인버터: 교체 이력 팝업 (B안) ---- */
+let histModalInvId = null;
+function openHistModal(id){
+  const r = inverters.find(x=>x.id===id);
+  if(!r) return;
+  histModalInvId = id;
+  // 예전 데이터(날짜 문자열만 있는 경우)를 {date, note} 형태로 정리
+  r.replacements = (r.replacements||[]).map(item => typeof item==="string" ? {date:item, note:""} : {date:item.date||"", note:item.note||""});
+  document.getElementById("histModalTitle").textContent = "교체 이력 — " + r.name;
+  renderHistModalList();
+  document.getElementById("histModalOverlay").style.display = "flex";
+}
+function renderHistModalList(){
+  const r = inverters.find(x=>x.id===histModalInvId);
+  const list = document.getElementById("histModalList");
+  if(!r || !list) return;
+  const items = r.replacements || [];
+  const order = items.map((_,i)=>i).sort((a,b)=> (items[b].date||"").localeCompare(items[a].date||""));
+  list.innerHTML = order.length ? order.map(i=>{
+    const it = items[i];
+    return `
+    <div class="hist-row-block">
+      <div class="hist-row">
+        <input type="date" value="${it.date||""}" onchange="editHistField(${i},'date',this.value)">
+        <button class="del-btn" title="삭제" onclick="removeHistDate(${i})">✕</button>
+      </div>
+      <textarea rows="2" placeholder="무엇을 교체했는지 자유롭게 적어주세요" oninput="autoGrow(this)" onchange="editHistField(${i},'note',this.value)">${escapeHtml(it.note||"")}</textarea>
+    </div>`;
+  }).join("") : `<p class="section-sub" style="margin:0 0 10px;">등록된 교체 이력이 없습니다.</p>`;
+  list.querySelectorAll("textarea").forEach(autoGrow);
+}
+function addHistDate(){
+  const r = inverters.find(x=>x.id===histModalInvId);
+  if(!r) return;
+  r.replacements = r.replacements || [];
+  r.replacements.push({date: TODAY.toISOString().slice(0,10), note:""});
+  renderHistModalList();
+}
+function editHistField(idx, field, value){
+  const r = inverters.find(x=>x.id===histModalInvId);
+  if(!r || !r.replacements[idx]) return;
+  r.replacements[idx][field] = value;
+  if(field==="date") renderHistModalList();
+}
+function removeHistDate(idx){
+  const r = inverters.find(x=>x.id===histModalInvId);
+  if(!r) return;
+  r.replacements.splice(idx,1);
+  renderHistModalList();
+}
+function closeHistModal(){
+  const r = inverters.find(x=>x.id===histModalInvId);
+  if(r) saveInverterToFirestore(r);
+  document.getElementById("histModalOverlay").style.display = "none";
+  histModalInvId = null;
+  renderInverters();
+}
+
+function renderIvCategoryStats(){
+  const el = document.getElementById("ivCategoryStats");
+  if(!el) return;
+  const byCat = {};
+  inverters.forEach(r=>{ const c=r.cat||"기타"; byCat[c]=(byCat[c]||0)+1; });
+  const cats = koSort(Object.keys(byCat));
+  el.innerHTML = cats.map(c=>`
+    <div class="stat-card" style="cursor:pointer;border-left:5px solid ${ivCatColor(c)};" onclick="ivFilterByCat('${escapeAttr(c)}')">
+      <div class="stat-label">${escapeHtml(c)}</div>
+      <div class="stat-value">${byCat[c]}<small> 품목</small></div>
+    </div>`).join("") +
+    `<div class="stat-card" style="cursor:pointer;" onclick="ivFilterSelectAll()"><div class="stat-label">전체</div><div class="stat-value">${inverters.length}<small> 품목</small></div></div>`;
+}
+
+function renderInverters(){
+  refreshIvCategoryList();
+  buildIvFilterPanel();
+  renderIvCategoryStats();
+  const q = document.getElementById("ivSearch").value.trim().toLowerCase();
+  const filtered = inverters.filter(r=>{
+    if(ivFilter.selectedCats!==null && !ivFilter.selectedCats.has(r.cat||"기타")) return false;
+    if(q){
+      const hay = [r.name,r.model,r.maker,r.spec].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    if(ivFilter.kwMin!==null || ivFilter.kwMax!==null){
+      const kw = parseFloat(r.equipKw);
+      if(isNaN(kw)) return false;
+      if(ivFilter.kwMin!==null && kw < ivFilter.kwMin) return false;
+      if(ivFilter.kwMax!==null && kw > ivFilter.kwMax) return false;
+    }
+    return true;
+  });
+  const tbody = document.getElementById("ivTableBody");
+  if(filtered.length===0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="17">${inverters.length===0 ? "등록된 인버터가 없습니다. 위에서 추가해주세요." : "조건에 맞는 인버터가 없습니다."}</td></tr>`;
+  } else {
+    tbody.innerHTML = filtered.map(r=>{
+      const color = ivCatColor(r.cat);
+      const memoTitle = r.specNote ? ("제원 메모\n"+r.specNote) : "제원 메모 없음 — 클릭해서 추가";
+      const histCount = (r.replacements||[]).length;
+      const repairLabel = r.repairStatus ? r.repairStatus : "미입력";
+      const repairTitle = r.repairStatus ? ("수리여부\n"+r.repairStatus) : "수리여부 미입력 — 클릭해서 입력";
+      return `<tr>
+        <td style="background:${color}66;"><input type="text" list="ivCatList" value="${escapeAttr(r.cat||"")}" onchange="updateInverter('${r.id}','cat',this.value)" style="font-weight:700;"></td>
+        <td><input type="text" value="${escapeAttr(r.sub||"")}" onchange="updateInverter('${r.id}','sub',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.name||"")}" onchange="updateInverter('${r.id}','name',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.model||"")}" onchange="updateInverter('${r.id}','model',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.spec||"")}" onchange="updateInverter('${r.id}','spec',this.value)"></td>
+        <td><button type="button" class="memo-btn full-btn ${r.specNote?"has-memo":""}" title="${escapeAttr(memoTitle)}" onclick="openTextModal('${r.id}','specNote','제원 메모','마우스를 올리면 이 메모가 표시됩니다. 여러 줄 입력 가능.')">📝메모</button></td>
+        <td><input type="text" value="${escapeAttr(r.maker||"")}" onchange="updateInverter('${r.id}','maker',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.invHp||"")}" onchange="updateInverter('${r.id}','invHp',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.equipHp||"")}" onchange="updateInverter('${r.id}','equipHp',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.equipKw||"")}" onchange="updateInverter('${r.id}','equipKw',this.value)"></td>
+        <td style="background:#FFFBEF;"><input type="number" min="0" value="${r.spare||0}" onchange="updateInverter('${r.id}','spare',parseInt(this.value)||0)"></td>
+        <td style="background:#FFFBEF;">
+          <select onchange="updateInverter('${r.id}','grade',this.value)">
+            <option value="" ${!r.grade?"selected":""}>-</option>
+            <option value="A" ${r.grade==="A"?"selected":""}>A급</option>
+            <option value="B" ${r.grade==="B"?"selected":""}>B급</option>
+            <option value="고장" ${r.grade==="고장"?"selected":""}>고장</option>
+          </select>
+        </td>
+        <td style="background:#FFFBEF;"><input type="text" value="${escapeAttr(r.location||"")}" onchange="updateInverter('${r.id}','location',this.value)"></td>
+        <td><button type="button" class="hist-badge full-btn ${r.repairStatus?"has-hist":""}" title="${escapeAttr(repairTitle)}" onclick="openTextModal('${r.id}','repairStatus','수리여부','예: 26.09.11 수리완료')">${escapeHtml(repairLabel)}</button></td>
+        <td><button type="button" class="hist-badge full-btn ${histCount?"has-hist":""}" onclick="openHistModal('${r.id}')">${histCount}건 ▾</button></td>
+        <td><input type="text" value="${escapeAttr(r.note||"")}" onchange="updateInverter('${r.id}','note',this.value)"></td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteInverter('${r.id}')">삭제</button></td>
+      </tr>`;
+    }).join("");
+  }
+  document.getElementById("ivCountHint").textContent = inverters.length + "건";
+  const isFiltered = ivFilter.selectedCats!==null || q || ivFilter.kwMin!==null || ivFilter.kwMax!==null;
+  document.getElementById("ivFilterResultHint").textContent = isFiltered ? `필터 결과: ${filtered.length}건 / 전체 ${inverters.length}건` : "";
+}
+
 
 /* ============================= 종합 분석 ============================= */
 let charts = {};
@@ -7851,7 +8386,7 @@ document.getElementById("analysisDetailToggle").addEventListener("click", functi
 
 /* ============================= 저장 / 불러오기 ============================= */
 document.getElementById("btnExport").addEventListener("click", ()=>{
-  const exportData = {...appState, spareParts};
+  const exportData = {...appState, spareParts, inverters};
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -7875,6 +8410,7 @@ document.getElementById("fileImport").addEventListener("change", function(){
         if(!appState.mining.issues) appState.mining.issues = [];
         state = appState[currentProcess];
         if(Array.isArray(data.spareParts)) spareParts = data.spareParts;
+        if(Array.isArray(data.inverters)) inverters = data.inverters;
       } else if(data.equipment){
         // 구버전 포맷: 현재 보고 있는 공정에만 반영
         if(!data.issues) data.issues = [];
@@ -7909,7 +8445,7 @@ function renderAll(rebuildAnalysis){
     renderAnalysis();
   }
   if(document.getElementById("view-spareparts").classList.contains("active")){
-    renderSpareParts();
+    switchSpareTab(activeSpareTab);
   }
 }
 renderAll(false);
