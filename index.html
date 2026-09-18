@@ -61,7 +61,7 @@ header.topbar{
   position:sticky; top:0; z-index:50;
   border-bottom:1px solid var(--border);
 }
-.topbar-inner{max-width:1320px;margin:0 auto;}
+.topbar-inner{max-width:1440px;margin:0 auto;}
 .topbar-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
 .brand{display:flex;align-items:center;gap:10px;}
 .brand .mark{
@@ -94,7 +94,7 @@ header.topbar{
 .tab.active{color:var(--ink);border-bottom-color:var(--amber);font-weight:600;}
 .tab:hover{color:var(--ink);}
 
-main{max-width:1320px;margin:0 auto;padding:24px 24px 64px;}
+main{max-width:1440px;margin:0 auto;padding:24px 24px 64px;}
 .view{display:none;}
 .view.active{display:block;}
 
@@ -681,8 +681,9 @@ select.color-pick{padding:6px;}
     <p class="section-sub">공장 전체 예비품 리스트입니다. 채광/파쇄 공정 구분과 무관하게 공용으로 관리됩니다. 모든 셀은 클릭해서 바로 수정할 수 있습니다.</p>
 
     <div class="process-switch">
-      <button class="proc-btn active" data-sptab="motor" onclick="switchSpareTab('motor')">⚙️ 모터 (코일·펌프류)</button>
+      <button class="proc-btn active" data-sptab="motor" onclick="switchSpareTab('motor')">⚙️ 모터 (코일)</button>
       <button class="proc-btn" data-sptab="inverter" onclick="switchSpareTab('inverter')">🔌 인버터</button>
+      <button class="proc-btn" data-sptab="gearpump" onclick="switchSpareTab('gearpump')">⚙️ 감속기·펌프류</button>
     </div>
 
     <div id="spMotorPanel">
@@ -750,7 +751,7 @@ select.color-pick{padding:6px;}
             <th style="width:48px;background:#FFF8E5;">등급</th>
             <th style="width:88px;background:#FFF8E5;">재고위치</th>
             <th style="width:88px;background:#FFF8E5;">사용처</th>
-            <th style="width:38px">삭제</th>
+            <th style="width:60px">삭제</th>
           </tr></thead>
           <tbody id="spTableBody"></tbody>
         </table>
@@ -805,9 +806,9 @@ select.color-pick{padding:6px;}
           <thead><tr>
             <th style="width:70px">구분</th>
             <th style="width:66px">세부구분</th>
-            <th style="width:150px">설비명</th>
+            <th style="width:140px">설비명</th>
             <th style="width:80px">모델</th>
-            <th style="width:130px">제원</th>
+            <th style="width:120px">제원</th>
             <th style="width:48px">메모</th>
             <th style="width:56px">제조사</th>
             <th style="width:56px">인버터 허용[HP]</th>
@@ -818,10 +819,70 @@ select.color-pick{padding:6px;}
             <th style="width:76px;background:#FFF8E5;">재고위치</th>
             <th style="width:88px">수리여부</th>
             <th style="width:64px">교체 이력</th>
-            <th style="width:120px">비고</th>
-            <th style="width:38px">삭제</th>
+            <th style="width:110px">비고</th>
+            <th style="width:60px">삭제</th>
           </tr></thead>
           <tbody id="ivTableBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="spGearPumpPanel" style="display:none;">
+      <div class="stat-grid" id="gpCategoryStats"></div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>＋ 새 품목 추가</h3></div>
+        <form class="inline-form" id="gpAddForm" style="grid-template-columns:130px 1fr auto;">
+          <div class="field"><label>구분</label><input type="text" list="gpCatList" id="gpNewCat" placeholder="예: 감속기 / 펌프류" required></div>
+          <div class="field"><label>비고 (용도)</label><input type="text" id="gpNewNote" placeholder="예: 씨크너 용수펌프"></div>
+          <button type="submit" class="btn btn-outline">추가</button>
+        </form>
+        <datalist id="gpCatList"></datalist>
+        <p class="section-sub" style="margin:10px 0 0;">kW·HP·감속비·극수·갯수 등은 추가 후 표에서 바로 입력하시면 됩니다.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>감속기·펌프류 목록</h3>
+          <span class="hint" id="gpCountHint"></span>
+        </div>
+        <div class="filter-bar">
+          <div class="field">
+            <label>검색</label>
+            <input type="text" id="gpSearch" placeholder="비고(용도) 검색" style="min-width:220px;">
+          </div>
+          <div class="field filter-dropdown-wrap">
+            <label>구분 필터</label>
+            <button type="button" class="btn btn-outline btn-sm" id="gpFilterBtn">필터 선택 ▾</button>
+            <div class="filter-dropdown" id="gpFilterPanel" style="display:none;"></div>
+          </div>
+          <div class="field">
+            <label>kW</label>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <input type="number" id="gpKwMin" placeholder="최소" step="0.1">
+              <span class="range-sep">~</span>
+              <input type="number" id="gpKwMax" placeholder="최대" step="0.1">
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="gpFilterReset">필터 초기화</button>
+          <span class="hint" id="gpFilterResultHint" style="margin-left:auto;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="table-compact">
+          <thead><tr>
+            <th style="width:88px">구분</th>
+            <th style="width:56px">kW</th>
+            <th style="width:56px">HP</th>
+            <th style="width:64px">감속비</th>
+            <th style="width:52px">극수</th>
+            <th style="width:56px;background:#FFF8E5;">갯수</th>
+            <th style="width:56px;background:#FFF8E5;">등급</th>
+            <th style="width:90px;background:#FFF8E5;">재고위치</th>
+            <th>비고</th>
+            <th style="width:60px">삭제</th>
+          </tr></thead>
+          <tbody id="gpTableBody"></tbody>
         </table>
         </div>
       </div>
@@ -2155,6 +2216,56 @@ const SEED_MINING_JULAUG = [
 ["M/T 2007",[["2026-08-14","[덤프] 09:00~16:00 미션 솔밸브 청소 및 미션오일 교환 중"],["2026-08-19","[덤프] 09:00~16:00 미션오일·휠터 교환 및 솔밸브 청소"]]],
 ["CAT345",[["2026-08-18","[굴삭기] 10:30~14:00 파일럿 펌프 오일 누유 점검"]]],
 ["300LC",[["2026-08-20","[굴삭기] 16:00~17:30 오일 누유 점검 (부위 판독 불확실)"]]]
+];
+
+const SEED_GEARPUMPS = [
+["감속기","0.75","1","100:1","",2,"사일로 로딩 슈트"],
+["감속기","0.75","1","60:1","4P",3,""],
+["감속기","1.5","2","30:1","4P",4,""],
+["감속기","1.5","2","60:1","4P",8,""],
+["감속기","2.2","3","30:1","4P",3,""],
+["감속기","2.2","3","60:1","4P",5,""],
+["감속기","3.7","5","60:1","4P",2,""],
+["감속기","3.7","5","30:1","4P",5,""],
+["감속기","3.7","5","10:1","4P",1,""],
+["감속기","3.7","5","20:1","4P",3,""],
+["감속기","5.5","7.5","30:1","4P",3,""],
+["감속기","5.5","7.5","60:1","4P",1,""],
+["감속기","7.5","10","30:1","4P",1,""],
+["감속기","7.5","10","30:1","4P",3,"브레이크 타입"],
+["감속기","7.5","10","60:1","4P",2,""],
+["감속기","11","15","30:1","4P",4,""],
+["감속기","11","15","60:1","4P",2,""],
+["감속기","15","20","30:1","4P",3,""],
+["감속기","15","20","30:1","4P",1,"브레이크 타입"],
+["감속기","15","20","20:1","4P",1,""],
+["감속기","18.5","25","15:1","4P",1,""],
+["감속기","18.5","25","30:1","6P",1,""],
+["감속기","22","30","30:1","6P",1,""],
+["감속기","22","30","30:1","4P",3,""],
+["감속기","22","30","30:1","4P",1,"모터 소음 있음"],
+["감속기","37","50","30:1","4P",2,"A급 1개, 기어 파손 → 긴급 예비용 1개"],
+["감속기","45","60","30:1","4P",1,"브레이크 타입"],
+["펌프류","2.2","3","","",1,"C/F 구동"],
+["펌프류","3","","1:1247","4P",1,"단방향"],
+["펌프류","3.7","5","1:1003","",4,"습자 세척수 PUMP"],
+["펌프류","5.5","7.5","","4P",2,"C/F 아지테이터, 단방향"],
+["펌프류","5.5","7.5","","4P",1,"C/F 아지테이터, 양방향"],
+["펌프류","7.5","","","",3,"C/F 진공펌프"],
+["펌프류","7.5","","120:1","",2,"분배기 35만"],
+["펌프류","7.5","","60:1","",1,"탈수기 35만"],
+["펌프류","22","","","",1,"습자 냉각수펌프(볼류트 펌프)"],
+["펌프류","30","","","",1,"하천수 펌프(파쇄 다단)"],
+["펌프류","37","","","",3,"하천수 펌프(마광)"],
+["펌프류","45","","","",3,"습자 냉각수펌프 (세척수, 공정수)"],
+["펌프류","55","","","",3,"하천수 펌프(스프링 쿨러, 슬라임)"],
+["펌프류","160","","","",3,"씨크너 용수펌프"],
+["펌프류","160","","","",2,"씨크너 6x4 워먼 펌프"],
+["펌프류","160","","","",2,"씨크너 4x3 워먼 펌프"],
+["감속기","?","?","1:6.06","",1,"35만 2-1차 밀 감속기"],
+["감속기","?","?","30:1","",1,"50만 쿨러 감속기"],
+["감속기","?","?","1:32","",1,"35만 드라이어 감속기"],
+["감속기","?","?","","",1,"35만 1차 밀 감속기"]
 ];
 
 const SEED_DOWNTIME_2223 = [
@@ -7302,6 +7413,14 @@ async function initFirebaseSync(){
     } else {
       await migrateInvertersIfNeeded(fb);
     }
+    const gearPumpsSnap = await fb.getDocs(fsGearPumpsCol(fb));
+    if(gearPumpsSnap.empty){
+      setSyncStatus("🔄 감속기·펌프류 데이터 업로드 중...");
+      await seedFirestoreGearPumps(fb);
+      await fb.setDoc(fsGearPumpsMetaDoc(fb), {version: GEARPUMPS_SEED_VERSION});
+    } else {
+      await migrateGearPumpsIfNeeded(fb);
+    }
     fb.onSnapshot(fsSparePartsCol(fb), (snap)=>{
       const list = [];
       snap.forEach(d=> list.push({id:d.id, ...d.data()}));
@@ -7314,6 +7433,13 @@ async function initFirebaseSync(){
       snap.forEach(d=> list.push({id:d.id, ...d.data()}));
       inverters = list;
       if(document.getElementById("view-spareparts").classList.contains("active") && activeSpareTab==="inverter") renderInverters();
+      setSyncStatus("🟢 실시간 동기화 중", "#2F7D5A");
+    }, err=>{ console.error(err); setSyncStatus("⚠️ 동기화 오류", "#C0392B"); });
+    fb.onSnapshot(fsGearPumpsCol(fb), (snap)=>{
+      const list = [];
+      snap.forEach(d=> list.push({id:d.id, ...d.data()}));
+      gearPumps = list;
+      if(document.getElementById("view-spareparts").classList.contains("active") && activeSpareTab==="gearpump") renderGearPumps();
       setSyncStatus("🟢 실시간 동기화 중", "#2F7D5A");
     }, err=>{ console.error(err); setSyncStatus("⚠️ 동기화 오류", "#C0392B"); });
     fb.onSnapshot(fsIssuesCol(fb), (snap)=>{
@@ -8241,6 +8367,14 @@ function buildInitialInverters(){
 }
 let inverters = buildInitialInverters();
 let ivFilter = { selectedCats: null, kwMin:null, kwMax:null };
+function buildInitialGearPumps(){
+  return SEED_GEARPUMPS.map(r=>({
+    id: uid("gp"), cat:r[0], kw:r[1], hp:r[2], ratio:r[3], pole:r[4], stock:r[5], note:r[6],
+    grade:"", location:""
+  }));
+}
+let gearPumps = buildInitialGearPumps();
+let gpFilter = { selectedCats: null, kwMin:null, kwMax:null };
 let activeSpareTab = "motor";
 let issues = []; // 채광/파쇄 공정 공용 (Firestore 최상위 issues 컬렉션)
 
@@ -8269,6 +8403,19 @@ function deleteInverterFromFirestore(id){
   const fb = window.__firebase;
   if(!fb) return;
   fb.deleteDoc(fsInvertersDoc(fb, id)).catch(err=> console.error("인버터 삭제 실패:", err));
+}
+function fsGearPumpsCol(fb){ return fb.collection(fb.db, "gearpumps"); }
+function fsGearPumpsDoc(fb, id){ return fb.doc(fb.db, "gearpumps", id); }
+function saveGearPumpToFirestore(gp){
+  const fb = window.__firebase;
+  if(!fb) return;
+  const {id, ...data} = gp;
+  fb.setDoc(fsGearPumpsDoc(fb, id), data).catch(err=> console.error("감속기·펌프 저장 실패:", err));
+}
+function deleteGearPumpFromFirestore(id){
+  const fb = window.__firebase;
+  if(!fb) return;
+  fb.deleteDoc(fsGearPumpsDoc(fb, id)).catch(err=> console.error("감속기·펌프 삭제 실패:", err));
 }
 const SPAREPARTS_SEED_VERSION = 2;
 function fsSparePartsMetaDoc(fb){ return fb.doc(fb.db, "meta", "spareparts"); }
@@ -8339,6 +8486,29 @@ async function migrateInvertersIfNeeded(fb){
     }
   }
   await fb.setDoc(fsInvertersMetaDoc(fb), {version: INVERTERS_SEED_VERSION});
+  return true;
+}
+
+const GEARPUMPS_SEED_VERSION = 1;
+function fsGearPumpsMetaDoc(fb){ return fb.doc(fb.db, "meta", "gearpumps"); }
+async function seedFirestoreGearPumps(fb){
+  for(let i=0;i<SEED_GEARPUMPS.length;i+=450){
+    const chunk = SEED_GEARPUMPS.slice(i,i+450);
+    const b = fb.writeBatch(fb.db);
+    chunk.forEach((r,j)=>{
+      const id = "gp_seed_" + (i+j);
+      b.set(fsGearPumpsDoc(fb,id), {
+        cat:r[0], kw:r[1], hp:r[2], ratio:r[3], pole:r[4], stock:r[5], note:r[6], grade:"", location:""
+      });
+    });
+    await b.commit();
+  }
+}
+async function migrateGearPumpsIfNeeded(fb){
+  const metaSnap = await fb.getDoc(fsGearPumpsMetaDoc(fb));
+  const currentVersion = metaSnap.exists() ? (metaSnap.data().version||0) : 0;
+  if(currentVersion >= GEARPUMPS_SEED_VERSION) return false;
+  await fb.setDoc(fsGearPumpsMetaDoc(fb), {version: GEARPUMPS_SEED_VERSION});
   return true;
 }
 
@@ -8508,7 +8678,10 @@ function switchSpareTab(name){
   document.querySelectorAll("[data-sptab]").forEach(b=> b.classList.toggle("active", b.dataset.sptab===name));
   document.getElementById("spMotorPanel").style.display = name==="motor" ? "" : "none";
   document.getElementById("spInverterPanel").style.display = name==="inverter" ? "" : "none";
-  if(name==="motor") renderSpareParts(); else renderInverters();
+  document.getElementById("spGearPumpPanel").style.display = name==="gearpump" ? "" : "none";
+  if(name==="motor") renderSpareParts();
+  else if(name==="inverter") renderInverters();
+  else renderGearPumps();
 }
 
 /* ---- 인버터 예비품 관리 ---- */
@@ -8757,6 +8930,160 @@ function renderInverters(){
   document.getElementById("ivCountHint").textContent = inverters.length + "건";
   const isFiltered = ivFilter.selectedCats!==null || q || ivFilter.kwMin!==null || ivFilter.kwMax!==null;
   document.getElementById("ivFilterResultHint").textContent = isFiltered ? `필터 결과: ${filtered.length}건 / 전체 ${inverters.length}건` : "";
+}
+
+/* ---- 감속기·펌프류 예비품 관리 ---- */
+function getAllGpCats(){ return koSort([...new Set(gearPumps.map(r=>r.cat||"기타"))]); }
+function gpCatColor(cat){ return cat==="감속기" ? "#C9DAF8" : cat==="펌프류" ? "#D9EAD3" : "#E5E7EB"; }
+
+function refreshGpCategoryList(){
+  const el = document.getElementById("gpCatList");
+  if(el) el.innerHTML = getAllGpCats().map(c=>`<option value="${escapeAttr(c)}">`).join("");
+}
+function buildGpFilterPanel(){
+  const panel = document.getElementById("gpFilterPanel");
+  if(!panel) return;
+  const cats = getAllGpCats();
+  const selected = gpFilter.selectedCats;
+  panel.innerHTML = `
+    <div class="filter-actions">
+      <button type="button" onclick="gpFilterSelectAll()">전체 선택</button>
+      <button type="button" onclick="gpFilterSelectNone()">전체 해제</button>
+    </div>
+    <div class="filter-list">${cats.map(c=>{
+      const checked = (selected===null || selected.has(c)) ? "checked" : "";
+      return `<label><input type="checkbox" value="${escapeAttr(c)}" ${checked} onchange="gpFilterToggle(this.value, this.checked)"><span class="swatch" style="background:${gpCatColor(c)};width:9px;height:9px;border-radius:3px;display:inline-block;"></span> ${escapeHtml(c)}</label>`;
+    }).join("")}</div>
+  `;
+  const btn = document.getElementById("gpFilterBtn");
+  const activeCount = selected===null ? cats.length : selected.size;
+  btn.textContent = (selected===null ? "필터 선택 ▾" : `필터 선택 (${activeCount}/${cats.length}) ▾`);
+}
+function gpFilterToggle(cat, checked){
+  if(gpFilter.selectedCats===null) gpFilter.selectedCats = new Set(getAllGpCats());
+  if(checked) gpFilter.selectedCats.add(cat); else gpFilter.selectedCats.delete(cat);
+  renderGearPumps();
+}
+function gpFilterSelectAll(){ gpFilter.selectedCats = null; renderGearPumps(); }
+function gpFilterSelectNone(){ gpFilter.selectedCats = new Set(); renderGearPumps(); }
+function gpFilterByCat(cat){ gpFilter.selectedCats = new Set([cat]); renderGearPumps(); }
+
+document.getElementById("gpSearch").addEventListener("input", ()=>renderGearPumps());
+["gpKwMin","gpKwMax"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", function(){
+    const key = {gpKwMin:"kwMin", gpKwMax:"kwMax"}[id];
+    const v = this.value.trim();
+    gpFilter[key] = v==="" ? null : parseFloat(v);
+    renderGearPumps();
+  });
+});
+document.getElementById("gpFilterBtn").addEventListener("click", function(ev){
+  ev.stopPropagation();
+  const panel = document.getElementById("gpFilterPanel");
+  panel.style.display = panel.style.display==="none" ? "block" : "none";
+});
+document.getElementById("gpFilterReset").addEventListener("click", function(){
+  gpFilter = { selectedCats:null, kwMin:null, kwMax:null };
+  document.getElementById("gpSearch").value = "";
+  ["gpKwMin","gpKwMax"].forEach(id=> document.getElementById(id).value = "");
+  renderGearPumps();
+});
+document.addEventListener("click", function(ev){
+  const panel = document.getElementById("gpFilterPanel");
+  const btn = document.getElementById("gpFilterBtn");
+  if(panel && panel.style.display!=="none" && !panel.contains(ev.target) && ev.target!==btn){
+    panel.style.display = "none";
+  }
+});
+document.getElementById("gpAddForm").addEventListener("submit", function(ev){
+  ev.preventDefault();
+  const cat = document.getElementById("gpNewCat").value.trim();
+  const note = document.getElementById("gpNewNote").value.trim();
+  if(!cat) return;
+  const newRow = {id:uid("gp"), cat, kw:"", hp:"", ratio:"", pole:"", stock:0, note, grade:"", location:""};
+  gearPumps.push(newRow);
+  saveGearPumpToFirestore(newRow);
+  this.reset();
+  renderGearPumps();
+});
+
+function updateGearPump(id, field, value){
+  const r = gearPumps.find(x=>x.id===id);
+  if(!r) return;
+  r[field] = value;
+  saveGearPumpToFirestore(r);
+  if(field==="cat") renderGearPumps();
+}
+function deleteGearPump(id){
+  if(!confirm("이 항목을 삭제하시겠습니까?")) return;
+  gearPumps = gearPumps.filter(x=>x.id!==id);
+  deleteGearPumpFromFirestore(id);
+  renderGearPumps();
+}
+
+function renderGpCategoryStats(){
+  const el = document.getElementById("gpCategoryStats");
+  if(!el) return;
+  const byCat = {};
+  gearPumps.forEach(r=>{ const c=r.cat||"기타"; byCat[c]=(byCat[c]||0)+1; });
+  const cats = koSort(Object.keys(byCat));
+  el.innerHTML = cats.map(c=>`
+    <div class="stat-card" style="cursor:pointer;border-left:5px solid ${gpCatColor(c)};" onclick="gpFilterByCat('${escapeAttr(c)}')">
+      <div class="stat-label">${escapeHtml(c)}</div>
+      <div class="stat-value">${byCat[c]}<small> 품목</small></div>
+    </div>`).join("") +
+    `<div class="stat-card" style="cursor:pointer;" onclick="gpFilterSelectAll()"><div class="stat-label">전체</div><div class="stat-value">${gearPumps.length}<small> 품목</small></div></div>`;
+}
+
+function renderGearPumps(){
+  refreshGpCategoryList();
+  buildGpFilterPanel();
+  renderGpCategoryStats();
+  const q = document.getElementById("gpSearch").value.trim().toLowerCase();
+  const filtered = gearPumps.filter(r=>{
+    if(gpFilter.selectedCats!==null && !gpFilter.selectedCats.has(r.cat||"기타")) return false;
+    if(q){
+      const hay = [r.note,r.ratio].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    if(gpFilter.kwMin!==null || gpFilter.kwMax!==null){
+      const kw = parseFloat(r.kw);
+      if(isNaN(kw)) return false;
+      if(gpFilter.kwMin!==null && kw < gpFilter.kwMin) return false;
+      if(gpFilter.kwMax!==null && kw > gpFilter.kwMax) return false;
+    }
+    return true;
+  });
+  const tbody = document.getElementById("gpTableBody");
+  if(filtered.length===0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">${gearPumps.length===0 ? "등록된 항목이 없습니다. 위에서 추가해주세요." : "조건에 맞는 항목이 없습니다."}</td></tr>`;
+  } else {
+    tbody.innerHTML = filtered.map(r=>{
+      const color = gpCatColor(r.cat);
+      return `<tr>
+        <td style="background:${color}66;"><input type="text" list="gpCatList" value="${escapeAttr(r.cat||"")}" onchange="updateGearPump('${r.id}','cat',this.value)" style="font-weight:700;"></td>
+        <td><input type="text" value="${escapeAttr(r.kw||"")}" onchange="updateGearPump('${r.id}','kw',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.hp||"")}" onchange="updateGearPump('${r.id}','hp',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.ratio||"")}" onchange="updateGearPump('${r.id}','ratio',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.pole||"")}" onchange="updateGearPump('${r.id}','pole',this.value)"></td>
+        <td style="background:#FFFBEF;"><input type="number" min="0" value="${r.stock||0}" onchange="updateGearPump('${r.id}','stock',parseInt(this.value)||0)"></td>
+        <td style="background:#FFFBEF;">
+          <select onchange="updateGearPump('${r.id}','grade',this.value)">
+            <option value="" ${!r.grade?"selected":""}>-</option>
+            <option value="A" ${r.grade==="A"?"selected":""}>A급</option>
+            <option value="B" ${r.grade==="B"?"selected":""}>B급</option>
+            <option value="고장" ${r.grade==="고장"?"selected":""}>고장</option>
+          </select>
+        </td>
+        <td style="background:#FFFBEF;"><input type="text" value="${escapeAttr(r.location||"")}" onchange="updateGearPump('${r.id}','location',this.value)"></td>
+        <td><input type="text" value="${escapeAttr(r.note||"")}" onchange="updateGearPump('${r.id}','note',this.value)"></td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteGearPump('${r.id}')">삭제</button></td>
+      </tr>`;
+    }).join("");
+  }
+  document.getElementById("gpCountHint").textContent = gearPumps.length + "건";
+  const isFiltered = gpFilter.selectedCats!==null || q || gpFilter.kwMin!==null || gpFilter.kwMax!==null;
+  document.getElementById("gpFilterResultHint").textContent = isFiltered ? `필터 결과: ${filtered.length}건 / 전체 ${gearPumps.length}건` : "";
 }
 
 
@@ -9113,7 +9440,7 @@ document.getElementById("analysisDetailToggle").addEventListener("click", functi
 
 /* ============================= 저장 / 불러오기 ============================= */
 document.getElementById("btnExport").addEventListener("click", ()=>{
-  const exportData = {...appState, spareParts, inverters, issues};
+  const exportData = {...appState, spareParts, inverters, gearPumps, issues};
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -9136,6 +9463,7 @@ document.getElementById("fileImport").addEventListener("change", function(){
         state = appState[currentProcess];
         if(Array.isArray(data.spareParts)) spareParts = data.spareParts;
         if(Array.isArray(data.inverters)) inverters = data.inverters;
+        if(Array.isArray(data.gearPumps)) gearPumps = data.gearPumps;
         if(Array.isArray(data.issues)) issues = data.issues;
       } else if(data.equipment){
         // 구버전 포맷: 현재 보고 있는 공정에만 반영
