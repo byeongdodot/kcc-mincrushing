@@ -7542,6 +7542,53 @@ async function migrateMiningNameMergeIfNeeded(fb){
   return true;
 }
 
+/* 죠 크러셔 보수 이력 합치기 (죠 고정/유동 라이너, 사이드 라이너, 웨지, 배광 B/C, 후레임·V-Belt → 죠 크러셔 1개) */
+const JAW_MERGE_VERSION = 1;
+function fsJawMergeMetaDoc(fb){ return fb.doc(fb.db, "meta", "jaw_crusher_merge"); }
+const JAW_MERGE_TARGET = "죠 크러셔";
+const JAW_MERGE_SOURCES = [
+  "죠 고정 라이너", "죠 유동 라이너", "죠 사이드 상 라이너", "죠 사이드 하 라이너",
+  "죠 웨지", "죠 배광 B/C", "죠 후레임 및 구동 V-Belt(4230)"
+];
+async function migrateJawCrusherMergeIfNeeded(fb){
+  const metaSnap = await fb.getDoc(fsJawMergeMetaDoc(fb));
+  const currentVersion = metaSnap.exists() ? (metaSnap.data().version||0) : 0;
+  if(currentVersion >= JAW_MERGE_VERSION) return false;
+  const eqSnap = await fb.getDocs(fsEquipCol(fb, "crushing"));
+  const byName = new Map();
+  eqSnap.forEach(d=> byName.set(d.data().name, d));
+  const sources = JAW_MERGE_SOURCES.map(n=> byName.get(n)).filter(Boolean);
+  if(sources.length){
+    const targetDoc = byName.get(JAW_MERGE_TARGET);
+    const targetId = targetDoc ? targetDoc.id : "merged_jaw_crusher";
+    const targetData = targetDoc ? targetDoc.data() : {};
+    const repairs = [...(targetData.repairs||[])];
+    const specLines = [];
+    if(targetData.spec && !/미기재/.test(targetData.spec)) specLines.push(targetData.spec);
+    sources.forEach(d=>{
+      const s = d.data();
+      const short = (s.name||"").replace(/^죠\s*/, "");
+      // 어느 부품의 이력인지 구분할 수 있도록 내용 앞에 원래 설비명을 붙임
+      (s.repairs||[]).forEach(r=> repairs.push({id:r.id, date:r.date, content:"["+short+"] "+(r.content||"")}));
+      if(s.spec && !/미기재/.test(s.spec)) specLines.push(short+": "+s.spec);
+    });
+    repairs.sort((a,b)=> (a.date||"") < (b.date||"") ? -1 : 1);
+    const first = sources.reduce((a,b)=> ((a.data().order||0) <= (b.data().order||0)) ? a : b);
+    const batch = fb.writeBatch(fb.db);
+    batch.set(fsEquipDoc(fb, "crushing", targetId), {
+      name: JAW_MERGE_TARGET,
+      spec: specLines.join("\n") || "사양 미기재",
+      color: targetData.color || first.data().color,
+      order: (targetData.order!==undefined ? targetData.order : (first.data().order||0)),
+      repairs
+    }, {merge:true});
+    sources.forEach(d=>{ if(d.id!==targetId) batch.delete(fsEquipDoc(fb, "crushing", d.id)); });
+    await batch.commit();
+  }
+  await fb.setDoc(fsJawMergeMetaDoc(fb), {version: JAW_MERGE_VERSION});
+  return true;
+}
+
 async function initFirebaseSync(){
   const fb = window.__firebase;
   if(!fb){ setSyncStatus("⚠️ Firebase 연결 실패 (오프라인 모드)", "#C0392B"); return; }
@@ -7558,6 +7605,7 @@ async function initFirebaseSync(){
       await migrateHpc500HistoryIfNeeded(fb);
       await migrateHpc300HistoryIfNeeded(fb);
       await migrateShc1680HistoryIfNeeded(fb);
+      await migrateJawCrusherMergeIfNeeded(fb);
     }
     await migrateMiningEquipmentIfNeeded(fb);
     await migrateMiningJulAugIfNeeded(fb);
@@ -7726,7 +7774,7 @@ async function revertHistory(historyId){
 }
 
 /* ============================= 로그인 / 인증 (가입 승인제) ============================= */
-const ADMIN_USERNAMES = ["bdpark7894"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
+const ADMIN_USERNAMES = ["byeongdodot"]; // 관리자 아이디 - 필요시 이 배열에 추가하세요
 
 function setAuthMode(mode){
   document.querySelectorAll(".auth-tab").forEach(b=> b.classList.toggle("active", b.dataset.mode===mode));
