@@ -304,6 +304,48 @@ table{width:100%;border-collapse:collapse;font-size:13px;}
 .hist-badge.has-hist{background:var(--amber-bg);color:var(--amber);border-color:var(--amber);}
 .full-btn{width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;text-align:center;}
 
+/* ===== 콘 세팅 ===== */
+.cone-cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;}
+.cone-card{border:1px solid var(--border);border-radius:14px;padding:14px 16px;background:#fff;}
+.cone-card h4{margin:0 0 10px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.cone-card h4 .dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+.cone-cfg-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cone-cfg-row label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--sub);font-weight:500;}
+.cone-cfg-row input{padding:6px 8px;font-size:13px;width:100%;min-width:0;}
+.cone-cfg-row label{min-width:0;}
+.cone-latest{margin-top:10px;padding-top:10px;border-top:1px dashed #EEF0F3;font-size:12px;color:var(--sub);line-height:1.6;}
+.cone-latest b{color:var(--ink);}
+.cone-badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;margin-left:4px;}
+.cone-badge.ok{background:var(--green-bg);color:var(--green);}
+.cone-badge.warn{background:var(--orange-bg);color:var(--orange);}
+.cone-badge.hi{background:var(--red-bg);color:var(--red);}
+.cone-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
+.cone-toolbar input[type=date]{padding:6px 8px;font-size:13px;}
+.cone-toolbar select{padding:6px 8px;font-size:13px;}
+.cone-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--sub);margin-left:auto;}
+.cone-legend span{display:inline-flex;align-items:center;gap:5px;}
+.cone-legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.cone-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
+table.cone-table{width:100%;min-width:1130px;table-layout:fixed;font-size:12px;}
+table.cone-table th, table.cone-table td{padding:5px 4px;border-right:1px solid #F0F0F2;text-align:center;}
+table.cone-table thead th{white-space:normal;line-height:1.3;word-break:keep-all;vertical-align:middle;text-align:center;font-size:11px;color:#3A3A3C;}
+table.cone-table thead tr.grp th{font-size:12px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--border);}
+table.cone-table thead .sub{display:block;font-weight:500;color:var(--sub);font-size:10.5px;}
+table.cone-table td input{padding:4px 3px;font-size:12px;text-align:center;border-color:#ECECF0;min-width:0;}
+table.cone-table input[type=number]{-moz-appearance:textfield;}
+table.cone-table input[type=number]::-webkit-inner-spin-button,table.cone-table input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+table.cone-table td input[type=date]{font-size:11.5px;padding:4px 2px;}
+table.cone-table tr.grp th:last-child, table.cone-table td:last-child{position:sticky;right:0;background:#fff;z-index:2;border-left:1px solid var(--border);}
+table.cone-table .cone-del{border:none;background:var(--red-bg);color:var(--red);border-radius:8px;width:28px;height:26px;cursor:pointer;font-size:13px;line-height:1;}
+table.cone-table .cone-del:hover{background:#fbd6d9;}
+table.cone-table td input.note{text-align:left;}
+table.cone-table td input.has-note{color:var(--red);font-weight:600;}
+table.cone-table td:first-child, table.cone-table tr.grp th:first-child{position:sticky;left:0;background:#fff;z-index:1;}
+table.cone-table td input.cone-warn{background:var(--orange-bg);border-color:#F3C98B;}
+table.cone-table td input.cone-hi{background:var(--red-bg);border-color:#F5B5BB;color:var(--red);font-weight:600;}
+.cone-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.cone-chart-box{position:relative;height:280px;}
+
 /* ===== 통합 검색 ===== */
 .gs-open-btn{display:inline-flex;align-items:center;gap:6px;}
 .gs-open-btn kbd{font-family:inherit;font-size:10.5px;color:var(--muted,#86868B);background:#F5F5F7;border:1px solid #E5E5EA;border-radius:5px;padding:0 5px;line-height:16px;}
@@ -469,6 +511,7 @@ select.color-pick{padding:6px;}
       <div class="tab" data-tab="analysis">📈 종합 분석</div>
       <div class="tab" data-tab="spareparts">🔩 예비품 관리</div>
       <div class="tab" data-tab="equipment">⚙️ 설비 관리</div>
+      <div class="tab" data-tab="cone" id="tabCone">🎯 콘 세팅</div>
     </nav>
   </div>
 </header>
@@ -923,6 +966,55 @@ select.color-pick{padding:6px;}
           <tbody id="gpTableBody"></tbody>
         </table>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 콘 세팅 (파쇄 전용) ===================== -->
+  <section class="view" id="view-cone">
+    <h2 class="section-title">파쇄 콘 세팅 관리</h2>
+    <p class="section-sub">날짜별 콘 실측 값·세팅 값·조정 칸수·암페어를 기록합니다. 표의 칸을 눌러 바로 입력하면 자동 저장됩니다. 기준값은 아래 카드에서 바꿀 수 있습니다.</p>
+
+    <div class="panel">
+      <div class="panel-head"><h3>기준값 · 최근 상태</h3><span class="hint">실측 값이 목표보다 3mm 이상 벗어나거나, 암페어가 기준을 넘으면 표시됩니다</span></div>
+      <div class="cone-cfg-grid" id="coneCfgGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>추이 그래프</h3>
+        <div class="cone-chips" id="coneChartChips"></div>
+      </div>
+      <div class="cone-chart-box"><canvas id="coneChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>콘 세팅 기록</h3><span class="hint" id="coneCountHint"></span></div>
+      <div class="cone-toolbar">
+        <input type="date" id="coneNewDate">
+        <button type="button" class="btn btn-amber btn-sm" id="coneAddBtn">＋ 기록 추가</button>
+        <select id="coneMonthSel"></select>
+        <select id="coneSortSel">
+          <option value="desc">최신 날짜가 위로</option>
+          <option value="asc">오래된 날짜가 위로</option>
+        </select>
+        <div class="cone-legend">
+          <span><i style="background:var(--orange-bg);border:1px solid #F3C98B;"></i>실측이 목표 ±3mm 벗어남</span>
+          <span><i style="background:var(--red-bg);border:1px solid #F5B5BB;"></i>암페어 기준 초과</span>
+        </div>
+      </div>
+      <div class="cone-wrap">
+        <table class="cone-table">
+          <colgroup>
+            <col style="width:116px"><col style="width:132px"><col style="width:66px"><col style="width:62px">
+            <col style="width:64px"><col style="width:64px"><col style="width:48px"><col style="width:60px">
+            <col style="width:64px"><col style="width:64px"><col style="width:48px"><col style="width:60px">
+            <col style="width:64px"><col style="width:64px"><col style="width:48px"><col style="width:60px">
+            <col style="width:42px">
+          </colgroup>
+          <thead id="coneThead"></thead>
+          <tbody id="coneTbody"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -8170,6 +8262,7 @@ async function initFirebaseSync(){
     await migrateMiningEquipmentIfNeeded(fb);
     await migrateMiningJulAugIfNeeded(fb);
     await migrateMiningNameMergeIfNeeded(fb);
+    await seedConeLogIfNeeded(fb);
     const sparePartsSnap = await fb.getDocs(fsSparePartsCol(fb));
     if(sparePartsSnap.empty){
       setSyncStatus("🔄 예비품 데이터 업로드 중...");
@@ -8216,6 +8309,20 @@ async function initFirebaseSync(){
       if(document.getElementById("view-spareparts").classList.contains("active") && activeSpareTab==="gearpump") renderGearPumps();
       setSyncStatus("🟢 실시간 동기화 중", "#2F7D5A");
     }, err=>{ console.error(err); setSyncStatus("⚠️ 동기화 오류", "#C0392B"); });
+    fb.onSnapshot(fsConeLogCol(fb), (snap)=>{
+      const list = [];
+      snap.forEach(d=> list.push({id:d.id, ...d.data()}));
+      appState.crushing.coneLog = list;
+      if(document.getElementById("view-cone").classList.contains("active")){
+        // 입력 중인 칸이 있으면 표는 다시 그리지 않음 (커서 유지)
+        const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest("#coneTbody");
+        if(!editing) renderConeTable();
+        renderConeCfg(); renderConeChart();
+      }
+    }, err=> console.error("cone log sync error:", err));
+    fb.onSnapshot(fsConeCfgDoc(fb), (snap)=>{
+      if(snap.exists()){ appState.crushing.coneCfg = snap.data(); renderCone(); }
+    }, err=> console.error("cone cfg sync error:", err));
     fb.onSnapshot(fsIssuesCol(fb), (snap)=>{
       const list = [];
       snap.forEach(d=> list.push({id:d.id, ...d.data()}));
@@ -8507,7 +8614,12 @@ function applyProcessLabels(){
   set("repairTitle", label + " 설비 보수 이력 관리");
   set("analysisTitle", label + " 설비 종합 분석");
   set("footerText", "KCC글라스 가평공장 " + label + " 설비 관리 통합 시스템");
-  document.querySelectorAll(".proc-btn").forEach(b=> b.classList.toggle("active", b.dataset.proc===currentProcess));
+  document.querySelectorAll(".proc-btn[data-proc]").forEach(b=> b.classList.toggle("active", b.dataset.proc===currentProcess));
+  const coneTab = document.getElementById("tabCone");
+  if(coneTab){
+    coneTab.style.display = currentProcess==="crushing" ? "" : "none";
+    if(currentProcess!=="crushing" && coneTab.classList.contains("active")) switchTab("issues");
+  }
 }
 
 function switchProcess(proc){
@@ -8544,6 +8656,7 @@ function switchTab(name){
   if(name==="analysis") renderAnalysis();
   if(name==="spareparts") switchSpareTab(activeSpareTab);
   if(name==="issues") renderIssues();
+  if(name==="cone") renderCone();
 }
 
 /* ============================= 현재 이슈 ============================= */
@@ -9861,6 +9974,283 @@ function renderGearPumps(){
 }
 
 
+/* ============================= 콘 세팅 (파쇄 전용) ============================= */
+const CONE_DEFS = [
+  {k:"c1",  name:"1차 콘",            short:"1차 콘",  color:"#4C8DF6"},
+  {k:"c21", name:"2-1호 콘 (HPC300)", short:"2-1호 콘", color:"#1E8E3E"},
+  {k:"c22", name:"2-2호 콘 (HPC500)", short:"2-2호 콘", color:"#C77700"}
+];
+const CONE_CFG_DEFAULT = { c1:{init:37, target:25, amp:180}, c21:{init:26, target:23, amp:200}, c22:{init:27, target:25, amp:50} };
+/* 시작 데이터 (2026년 콘 세팅 기록 엑셀): [날짜, 내용, 생산량, 죠, [1차 실측,세팅,칸수,A], [2-1 ...], [2-2 ...]] */
+const SEED_CONE_LOG = [
+  ["2026-10-21","","",null,[null,null,null,155],[null,null,null,146],[null,null,null,50]],
+  ["2026-10-22","","",null,[34.0,30.4,6,null],[26.6,23.5,8,null],[28.4,25.4,8,null]],
+  ["2026-10-26","","",null,[30.4,30.4,0,160],[26.6,23.6,8,158],[27.7,25.5,10,50]],
+  ["2026-10-30","","",null,[30.0,25.0,null,null],[null,null,null,null],[null,null,null,null]],
+  ["2026-10-31","","",101.6,[27.3,25.2,1,null],[25.0,22.7,null,null],[27.9,24.9,10,null]],
+  ["2026-11-05","","",null,[null,null,null,195],[null,null,null,161],[null,null,null,51]],
+  ["2026-11-06","","",null,[28.4,24.2,4,215],[26.0,22.9,20,161],[29.2,25.2,14,50]],
+  ["2026-11-07","","",null,[25.7,25.1,1,204],[26.3,23.1,17,193],[29.0,24.9,24,51]],
+  ["2026-11-09","","",null,[28.0,24.5,2,202],[23.3,23.3,0,172],[27.7,25.1,10,49]],
+  ["2026-11-16","2-1호콘 라이나 교체","",null,[31.3,25.2,6,214],[null,26,null,228],[29.5,24.7,20,49]],
+  ["2026-11-17","","",null,[25.4,25.4,0,198],[25.4,23.8,4,186],[27.6,25.6,10,42]]
+];
+function coneSeedRows(){
+  const toC = a=>({m:a[0], s:a[1], n:a[2], a:a[3]});
+  return SEED_CONE_LOG.map((r,i)=>({id:"cone_seed_"+i, date:r[0], note:r[1], prod:r[2], jaw:r[3], c1:toC(r[4]), c21:toC(r[5]), c22:toC(r[6])}));
+}
+appState.crushing.coneLog = coneSeedRows();
+appState.crushing.coneCfg = deepClone(CONE_CFG_DEFAULT);
+let coneChartKey = "c1";
+let coneChart = null;
+let coneMonth = "all";
+let coneSort = "desc";
+
+function coneCfg(){
+  const cfg = appState.crushing.coneCfg || {};
+  const out = {};
+  CONE_DEFS.forEach(d=> out[d.k] = {...CONE_CFG_DEFAULT[d.k], ...(cfg[d.k]||{})});
+  return out;
+}
+function coneLog(){ return appState.crushing.coneLog || (appState.crushing.coneLog = []); }
+function coneNum(v){ if(v===null || v===undefined || v==="") return null; const n = parseFloat(v); return isNaN(n) ? null : n; }
+function coneFmt(v){ return v===null || v===undefined ? "" : String(v); }
+function coneDateLabel(s){ if(!s) return ""; const [y,m,d] = s.split("-"); return `${y.slice(2)}.${m}.${d}`; }
+
+/* 칸 색 표시: 실측이 목표에서 3mm 이상 벗어남 / 암페어 기준 초과 */
+function coneCellClass(k, field, v){
+  const cfg = coneCfg()[k];
+  if(v===null || v===undefined) return "";
+  if(field==="m" && Math.abs(v - cfg.target) >= 3) return "cone-warn";
+  if(field==="a" && v > cfg.amp) return "cone-hi";
+  return "";
+}
+
+/* Firestore: processes/crushing/coneLog/{id}, processes/crushing/coneConfig/main (기존 보안 규칙 범위) */
+function fsConeLogCol(fb){ return fb.collection(fb.db, "processes", "crushing", "coneLog"); }
+function fsConeLogDoc(fb, id){ return fb.doc(fb.db, "processes", "crushing", "coneLog", id); }
+function fsConeCfgDoc(fb){ return fb.doc(fb.db, "processes", "crushing", "coneConfig", "main"); }
+function saveConeRow(r){
+  const fb = window.__firebase; if(!fb) return;
+  const {id, ...data} = r;
+  fb.setDoc(fsConeLogDoc(fb, id), data).catch(err=> console.error("콘 세팅 저장 실패:", err));
+}
+function deleteConeRowFs(id){
+  const fb = window.__firebase; if(!fb) return;
+  fb.deleteDoc(fsConeLogDoc(fb, id)).catch(err=> console.error("콘 세팅 삭제 실패:", err));
+}
+function saveConeCfg(){
+  const fb = window.__firebase; if(!fb) return;
+  fb.setDoc(fsConeCfgDoc(fb), coneCfg()).catch(err=> console.error("콘 기준값 저장 실패:", err));
+}
+const CONE_LOG_SEED_VERSION = 1;
+async function seedConeLogIfNeeded(fb){
+  const metaRef = fb.doc(fb.db, "meta", "cone_log_seed");
+  const metaSnap = await fb.getDoc(metaRef);
+  if(metaSnap.exists() && (metaSnap.data().version||0) >= CONE_LOG_SEED_VERSION) return false;
+  const snap = await fb.getDocs(fsConeLogCol(fb));
+  if(snap.empty){
+    const b = fb.writeBatch(fb.db);
+    coneSeedRows().forEach(r=>{ const {id, ...data} = r; b.set(fsConeLogDoc(fb, id), data); });
+    await b.commit();
+  }
+  const cfgSnap = await fb.getDoc(fsConeCfgDoc(fb));
+  if(!cfgSnap.exists()) await fb.setDoc(fsConeCfgDoc(fb), deepClone(CONE_CFG_DEFAULT));
+  await fb.setDoc(metaRef, {version: CONE_LOG_SEED_VERSION});
+  return true;
+}
+
+/* ---- 화면 ---- */
+function renderConeCfg(){
+  const cfg = coneCfg();
+  const rows = [...coneLog()].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+  document.getElementById("coneCfgGrid").innerHTML = CONE_DEFS.map(d=>{
+    const c = cfg[d.k];
+    const lastM = rows.find(r=> r[d.k] && coneNum(r[d.k].m)!==null);
+    const lastA = rows.find(r=> r[d.k] && coneNum(r[d.k].a)!==null);
+    let mLine = "실측 기록 없음", aLine = "암페어 기록 없음";
+    if(lastM){
+      const m = coneNum(lastM[d.k].m), s = coneNum(lastM[d.k].s), diff = Math.round((m - c.target)*10)/10;
+      const badge = Math.abs(diff) >= 3 ? `<span class="cone-badge warn">목표 대비 ${diff>0?"+":""}${diff}mm</span>` : `<span class="cone-badge ok">목표 대비 ${diff>0?"+":""}${diff}mm</span>`;
+      mLine = `실측 <b>${m}mm</b>${s!==null?` → 세팅 <b>${s}mm</b>`:""} ${badge} <span style="color:#AEAEB2;">(${coneDateLabel(lastM.date)})</span>`;
+    }
+    if(lastA){
+      const a = coneNum(lastA[d.k].a);
+      const badge = a > c.amp ? `<span class="cone-badge hi">기준 +${Math.round((a-c.amp)*10)/10}A</span>` : `<span class="cone-badge ok">기준 이내</span>`;
+      aLine = `암페어 <b>${a}A</b> ${badge} <span style="color:#AEAEB2;">(${coneDateLabel(lastA.date)})</span>`;
+    }
+    return `<div class="cone-card">
+      <h4><span class="dot" style="background:${d.color}"></span>${d.name}</h4>
+      <div class="cone-cfg-row">
+        <label>최초 세팅 (mm)<input type="number" step="0.1" value="${c.init}" onchange="coneSetCfg('${d.k}','init',this.value)"></label>
+        <label>목표 세팅 (mm)<input type="number" step="0.1" value="${c.target}" onchange="coneSetCfg('${d.k}','target',this.value)"></label>
+        <label>기준 암페어 (A)<input type="number" step="1" value="${c.amp}" onchange="coneSetCfg('${d.k}','amp',this.value)"></label>
+      </div>
+      <div class="cone-latest">${mLine}<br>${aLine}</div>
+    </div>`;
+  }).join("");
+}
+function coneSetCfg(k, field, v){
+  const n = coneNum(v);
+  if(n===null) return;
+  const cfg = coneCfg();
+  cfg[k][field] = n;
+  appState.crushing.coneCfg = cfg;
+  saveConeCfg();
+  renderCone();
+}
+
+function renderConeHead(){
+  const cfg = coneCfg();
+  document.getElementById("coneThead").innerHTML =
+    `<tr class="grp"><th rowspan="2">날짜</th><th rowspan="2">내용</th><th rowspan="2">생산량</th><th rowspan="2">죠 크러셔<span class="sub">(mm)</span></th>` +
+    CONE_DEFS.map(d=> `<th colspan="4" style="border-bottom:3px solid ${d.color};border-left:3px solid ${d.color};">${d.name}</th>`).join("") +
+    `<th rowspan="2">삭제</th></tr><tr>` +
+    CONE_DEFS.map(d=>{ const c = cfg[d.k]; return `
+      <th style="border-left:3px solid ${CONE_DEFS.find(x=>x.k===d.k).color};">실측 값<span class="sub">최초 ${c.init}mm</span></th>
+      <th>세팅 값<span class="sub">목표 ${c.target}mm</span></th>
+      <th>조정 칸수</th>
+      <th>암페어<span class="sub">기준 ${c.amp}A</span></th>`; }).join("") + `</tr>`;
+}
+
+function coneFilteredRows(){
+  let rows = [...coneLog()];
+  if(coneMonth!=="all") rows = rows.filter(r=> (r.date||"").slice(0,7)===coneMonth);
+  rows.sort((a,b)=> coneSort==="asc" ? (a.date||"").localeCompare(b.date||"") : (b.date||"").localeCompare(a.date||""));
+  return rows;
+}
+function renderConeMonthSel(){
+  const months = [...new Set(coneLog().map(r=> (r.date||"").slice(0,7)).filter(Boolean))].sort().reverse();
+  if(coneMonth!=="all" && !months.includes(coneMonth)) coneMonth = "all";
+  document.getElementById("coneMonthSel").innerHTML = `<option value="all">전체 기간</option>` +
+    months.map(m=> `<option value="${m}" ${m===coneMonth?"selected":""}>${m.slice(0,4)}년 ${parseInt(m.slice(5),10)}월</option>`).join("");
+}
+function renderConeTable(){
+  renderConeHead();
+  renderConeMonthSel();
+  const rows = coneFilteredRows();
+  const tb = document.getElementById("coneTbody");
+  const num = (id, path, v, step, cls, tdStyle)=> `<td${tdStyle?` style="${tdStyle}"`:""}><input type="number" step="${step}" inputmode="decimal" class="${cls||""}" value="${coneFmt(v)}" onchange="coneUpdate('${id}','${path}',this)"></td>`;
+  if(!rows.length){
+    tb.innerHTML = `<tr class="empty-row"><td colspan="17">${coneLog().length ? "이 기간에 기록이 없습니다." : "기록이 없습니다. 위에서 날짜를 고르고 ＋ 기록 추가를 눌러주세요."}</td></tr>`;
+  } else {
+    tb.innerHTML = rows.map(r=>{
+      let h = `<tr data-cid="${r.id}">
+        <td><input type="date" value="${r.date||""}" onchange="coneUpdate('${r.id}','date',this)"></td>
+        <td><input type="text" class="note ${r.note?"has-note":""}" value="${escapeAttr(r.note||"")}" onchange="coneUpdate('${r.id}','note',this)"></td>
+        <td><input type="text" value="${escapeAttr(r.prod||"")}" onchange="coneUpdate('${r.id}','prod',this)"></td>
+        ${num(r.id, "jaw", r.jaw, "0.1")}`;
+      CONE_DEFS.forEach(d=>{
+        const v = r[d.k] || {};
+        h += num(r.id, d.k+".m", v.m, "0.1", coneCellClass(d.k, "m", coneNum(v.m)), `border-left:3px solid ${d.color};`)
+           + num(r.id, d.k+".s", v.s, "0.1")
+           + num(r.id, d.k+".n", v.n, "1")
+           + num(r.id, d.k+".a", v.a, "1", coneCellClass(d.k, "a", coneNum(v.a)));
+      });
+      h += `<td><button type="button" class="cone-del" title="이 날짜 기록 삭제" onclick="coneDelete('${r.id}')">✕</button></td></tr>`;
+      return h;
+    }).join("");
+  }
+  document.getElementById("coneCountHint").textContent = `총 ${coneLog().length}건` + (coneMonth!=="all" ? ` · 표시 ${rows.length}건` : "");
+}
+
+function coneUpdate(id, path, el){
+  const r = coneLog().find(x=> x.id===id);
+  if(!r) return;
+  if(path==="date" || path==="note" || path==="prod"){
+    r[path] = el.value.trim();
+    if(path==="note") el.classList.toggle("has-note", !!r.note);
+  } else if(path==="jaw"){
+    r.jaw = coneNum(el.value);
+  } else {
+    const [k, f] = path.split(".");
+    r[k] = {...(r[k]||{}), [f]: coneNum(el.value)};
+    if(f==="m" || f==="a"){
+      el.classList.remove("cone-warn","cone-hi");
+      const cls = coneCellClass(k, f, r[k][f]);
+      if(cls) el.classList.add(cls);
+    }
+  }
+  saveConeRow(r);
+  if(path==="date") renderConeTable();
+  renderConeCfg();
+  renderConeChart();
+}
+function coneDelete(id){
+  const r = coneLog().find(x=> x.id===id);
+  if(!r) return;
+  if(!confirm(`${coneDateLabel(r.date)} 콘 세팅 기록을 삭제하시겠습니까?`)) return;
+  appState.crushing.coneLog = coneLog().filter(x=> x.id!==id);
+  deleteConeRowFs(id);
+  renderCone();
+}
+function coneAddRow(){
+  const date = document.getElementById("coneNewDate").value || TODAY.toISOString().slice(0,10);
+  const exist = coneLog().find(r=> r.date===date);
+  if(exist && !confirm(`${coneDateLabel(date)} 기록이 이미 있습니다. 같은 날짜로 한 줄 더 추가할까요?`)){
+    coneMonth = "all"; renderConeTable();
+    const tr = document.querySelector(`#coneTbody tr[data-cid="${exist.id}"]`);
+    if(tr){ tr.scrollIntoView({behavior:"smooth", block:"center"}); tr.classList.remove("gs-flash"); void tr.offsetWidth; tr.classList.add("gs-flash"); }
+    return;
+  }
+  const blank = ()=>({m:null, s:null, n:null, a:null});
+  const r = {id: uid("cone"), date, note:"", prod:"", jaw:null, c1:blank(), c21:blank(), c22:blank()};
+  coneLog().push(r);
+  saveConeRow(r);
+  coneMonth = "all";
+  renderCone();
+  const tr = document.querySelector(`#coneTbody tr[data-cid="${r.id}"]`);
+  if(tr){ tr.scrollIntoView({behavior:"smooth", block:"center"}); const f = tr.querySelectorAll("input")[4]; if(f) f.focus(); }
+}
+document.getElementById("coneAddBtn").addEventListener("click", coneAddRow);
+document.getElementById("coneMonthSel").addEventListener("change", function(){ coneMonth = this.value; renderConeTable(); renderConeChart(); });
+document.getElementById("coneSortSel").addEventListener("change", function(){ coneSort = this.value; renderConeTable(); });
+
+function renderConeChips(){
+  document.getElementById("coneChartChips").innerHTML = CONE_DEFS.map(d=>
+    `<button type="button" class="proc-btn ${d.k===coneChartKey?"active":""}" onclick="coneChartKey='${d.k}';renderConeChips();renderConeChart();">${d.short}</button>`).join("");
+}
+function renderConeChart(){
+  const canvas = document.getElementById("coneChart");
+  if(!canvas || typeof Chart==="undefined") return;
+  if(!document.getElementById("view-cone").classList.contains("active")) return;
+  const d = CONE_DEFS.find(x=> x.k===coneChartKey), cfg = coneCfg()[d.k];
+  let rows = [...coneLog()].filter(r=> r.date).sort((a,b)=> a.date.localeCompare(b.date));
+  if(coneMonth!=="all") rows = rows.filter(r=> r.date.slice(0,7)===coneMonth);
+  const labels = rows.map(r=> coneDateLabel(r.date));
+  const pick = f=> rows.map(r=> coneNum((r[d.k]||{})[f]));
+  const data = {
+    labels,
+    datasets: [
+      {label:"실측 값 (mm)", data:pick("m"), borderColor:d.color, backgroundColor:d.color, tension:.25, spanGaps:true, pointRadius:3, yAxisID:"y"},
+      {label:"세팅 값 (mm)", data:pick("s"), borderColor:"#8E8E93", backgroundColor:"#8E8E93", borderDash:[4,3], tension:.25, spanGaps:true, pointRadius:2, yAxisID:"y"},
+      {label:`목표 ${cfg.target}mm`, data:labels.map(()=>cfg.target), borderColor:"#34C759", borderWidth:1.5, borderDash:[6,4], pointRadius:0, yAxisID:"y"},
+      {label:"암페어 (A)", data:pick("a"), borderColor:"#FF6B6B", backgroundColor:"#FF6B6B", tension:.25, spanGaps:true, pointRadius:3, yAxisID:"y1"},
+      {label:`기준 ${cfg.amp}A`, data:labels.map(()=>cfg.amp), borderColor:"#FF6B6B", borderWidth:1, borderDash:[2,4], pointRadius:0, yAxisID:"y1"}
+    ]
+  };
+  const options = {
+    responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
+    plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}}},
+    scales:{
+      y:{position:"left", title:{display:true, text:"mm"}, grid:{color:"#F0F0F2"}},
+      y1:{position:"right", title:{display:true, text:"A"}, grid:{drawOnChartArea:false}}
+    }
+  };
+  if(coneChart){ coneChart.data = data; coneChart.options = options; coneChart.update(); }
+  else coneChart = new Chart(canvas.getContext("2d"), {type:"line", data, options});
+}
+
+function renderCone(){
+  if(!document.getElementById("view-cone").classList.contains("active")) return;
+  const nd = document.getElementById("coneNewDate");
+  if(!nd.value) nd.value = TODAY.toISOString().slice(0,10);
+  renderConeCfg();
+  renderConeTable();
+  renderConeChips();
+  renderConeChart();
+}
+
 /* ============================= 통합 검색 ============================= */
 const GS_EXTRA_SYNONYMS = [
   ["모터","motor","전동기"], ["교체","교환"], ["인버터","inverter","vfd"],
@@ -10507,6 +10897,8 @@ document.getElementById("fileImport").addEventListener("change", function(){
         if(Array.isArray(data.inverters)) inverters = data.inverters;
         if(Array.isArray(data.gearPumps)) gearPumps = data.gearPumps;
         if(Array.isArray(data.issues)) issues = data.issues;
+        if(!Array.isArray(appState.crushing.coneLog)) appState.crushing.coneLog = [];
+        if(!appState.crushing.coneCfg) appState.crushing.coneCfg = deepClone(CONE_CFG_DEFAULT);
       } else if(data.equipment){
         // 구버전 포맷: 현재 보고 있는 공정에만 반영
         appState[currentProcess] = data;
@@ -10542,6 +10934,7 @@ function renderAll(rebuildAnalysis){
   if(document.getElementById("view-spareparts").classList.contains("active")){
     switchSpareTab(activeSpareTab);
   }
+  renderCone();
 }
 renderAll(false);
 applyProcessLabels();
