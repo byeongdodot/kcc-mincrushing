@@ -10238,7 +10238,8 @@ function renderConeChart(){
       {label:`목표 ${cfg.target}mm`, data:labels.map(()=>cfg.target), borderColor:"#34C759", borderWidth:1.5, borderDash:[6,4], pointRadius:0, yAxisID:"y"},
       {label:"암페어 (A)", data:pick("a"), borderColor:"#FF6B6B", backgroundColor:"#FF6B6B", tension:.25, spanGaps:true, pointRadius:3, yAxisID:"y1"},
       {label:`기준 ${cfg.amp}A`, data:labels.map(()=>cfg.amp), borderColor:"#FF6B6B", borderWidth:1, borderDash:[2,4], pointRadius:0, yAxisID:"y1"},
-      {type:"bar", label:"생산량 (t)", data:prod, backgroundColor:"rgba(142,142,147,0.22)", borderColor:"rgba(142,142,147,0.5)", borderWidth:1, borderRadius:4, maxBarThickness:28, yAxisID:"y2", order:10}
+      {label:"생산량 (t)", data:prod, borderColor:"#5B21B6", backgroundColor:"#5B21B6", borderWidth:3, tension:.25, spanGaps:true,
+       pointRadius:4, pointHoverRadius:6, pointStyle:"rectRot", yAxisID:"y2"}
     ]
   };
   const options = {
@@ -10249,8 +10250,8 @@ function renderConeChart(){
     scales:{
       y:{position:"left", title:{display:true, text:"mm"}, grid:{color:"#F0F0F2"}},
       y1:{position:"right", title:{display:true, text:"A"}, grid:{drawOnChartArea:false}},
-      y2:{position:"right", display:hasProd, beginAtZero:true, title:{display:true, text:"생산량 (t)"}, grid:{drawOnChartArea:false},
-          ticks:{callback:v=> Number(v).toLocaleString()}}
+      y2:{position:"right", display:hasProd, title:{display:true, text:"생산량 (t)", color:"#5B21B6", font:{weight:"bold"}}, grid:{drawOnChartArea:false},
+          ticks:{color:"#5B21B6", callback:v=> Number(v).toLocaleString()}}
     }
   };
   if(coneChart){ coneChart.data = data; coneChart.options = options; coneChart.update(); }
