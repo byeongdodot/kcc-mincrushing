@@ -10015,6 +10015,15 @@ function coneCfg(){
 function coneLog(){ return appState.crushing.coneLog || (appState.crushing.coneLog = []); }
 function coneNum(v){ if(v===null || v===undefined || v==="") return null; const n = parseFloat(v); return isNaN(n) ? null : n; }
 function coneFmt(v){ return v===null || v===undefined ? "" : String(v); }
+function coneProd(v){
+  if(v===null || v===undefined) return null;
+  const s = String(v).replace(/,/g,"").trim();
+  const m = s.match(/-?\d+(\.\d+)?/);
+  if(!m) return null;
+  let n = parseFloat(m[0]);
+  if(/만/.test(s)) n *= 10000;
+  return n;
+}
 function coneDateLabel(s){ if(!s) return ""; const [y,m,d] = s.split("-"); return `${y.slice(2)}.${m}.${d}`; }
 
 /* 칸 색 표시: 실측이 목표에서 3mm 이상 벗어남 / 암페어 기준 초과 */
@@ -10103,7 +10112,7 @@ function coneSetCfg(k, field, v){
 function renderConeHead(){
   const cfg = coneCfg();
   document.getElementById("coneThead").innerHTML =
-    `<tr class="grp"><th rowspan="2">날짜</th><th rowspan="2">내용</th><th rowspan="2">생산량</th><th rowspan="2">죠 크러셔<span class="sub">(mm)</span></th>` +
+    `<tr class="grp"><th rowspan="2">날짜</th><th rowspan="2">내용</th><th rowspan="2">생산량<span class="sub">(t)</span></th><th rowspan="2">죠 크러셔<span class="sub">(mm)</span></th>` +
     CONE_DEFS.map(d=> `<th colspan="4" style="border-bottom:3px solid ${d.color};border-left:3px solid ${d.color};">${d.name}</th>`).join("") +
     `<th rowspan="2">삭제</th></tr><tr>` +
     CONE_DEFS.map(d=>{ const c = cfg[d.k]; return `
@@ -10138,7 +10147,7 @@ function renderConeTable(){
       let h = `<tr data-cid="${r.id}">
         <td><input type="date" value="${r.date||""}" onchange="coneUpdate('${r.id}','date',this)"></td>
         <td><input type="text" class="note ${r.note?"has-note":""}" value="${escapeAttr(r.note||"")}" onchange="coneUpdate('${r.id}','note',this)"></td>
-        <td><input type="text" value="${escapeAttr(r.prod||"")}" onchange="coneUpdate('${r.id}','prod',this)"></td>
+        <td><input type="text" inputmode="decimal" value="${escapeAttr(r.prod||"")}" onchange="coneUpdate('${r.id}','prod',this)"></td>
         ${num(r.id, "jaw", r.jaw, "0.1")}`;
       CONE_DEFS.forEach(d=>{
         const v = r[d.k] || {};
@@ -10219,6 +10228,8 @@ function renderConeChart(){
   if(coneMonth!=="all") rows = rows.filter(r=> r.date.slice(0,7)===coneMonth);
   const labels = rows.map(r=> coneDateLabel(r.date));
   const pick = f=> rows.map(r=> coneNum((r[d.k]||{})[f]));
+  const prod = rows.map(r=> coneProd(r.prod));
+  const hasProd = prod.some(v=> v!==null);
   const data = {
     labels,
     datasets: [
@@ -10226,15 +10237,20 @@ function renderConeChart(){
       {label:"세팅 값 (mm)", data:pick("s"), borderColor:"#8E8E93", backgroundColor:"#8E8E93", borderDash:[4,3], tension:.25, spanGaps:true, pointRadius:2, yAxisID:"y"},
       {label:`목표 ${cfg.target}mm`, data:labels.map(()=>cfg.target), borderColor:"#34C759", borderWidth:1.5, borderDash:[6,4], pointRadius:0, yAxisID:"y"},
       {label:"암페어 (A)", data:pick("a"), borderColor:"#FF6B6B", backgroundColor:"#FF6B6B", tension:.25, spanGaps:true, pointRadius:3, yAxisID:"y1"},
-      {label:`기준 ${cfg.amp}A`, data:labels.map(()=>cfg.amp), borderColor:"#FF6B6B", borderWidth:1, borderDash:[2,4], pointRadius:0, yAxisID:"y1"}
+      {label:`기준 ${cfg.amp}A`, data:labels.map(()=>cfg.amp), borderColor:"#FF6B6B", borderWidth:1, borderDash:[2,4], pointRadius:0, yAxisID:"y1"},
+      {type:"bar", label:"생산량 (t)", data:prod, backgroundColor:"rgba(142,142,147,0.22)", borderColor:"rgba(142,142,147,0.5)", borderWidth:1, borderRadius:4, maxBarThickness:28, yAxisID:"y2", order:10}
     ]
   };
   const options = {
     responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
-    plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}}},
+    plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}},
+      tooltip:{filter:item=> item.raw!==null && item.raw!==undefined,
+        callbacks:{label:ctx=> `${ctx.dataset.label}: ${ctx.dataset.yAxisID==="y2" ? Number(ctx.raw).toLocaleString()+"t" : ctx.raw}`}}},
     scales:{
       y:{position:"left", title:{display:true, text:"mm"}, grid:{color:"#F0F0F2"}},
-      y1:{position:"right", title:{display:true, text:"A"}, grid:{drawOnChartArea:false}}
+      y1:{position:"right", title:{display:true, text:"A"}, grid:{drawOnChartArea:false}},
+      y2:{position:"right", display:hasProd, beginAtZero:true, title:{display:true, text:"생산량 (t)"}, grid:{drawOnChartArea:false},
+          ticks:{callback:v=> Number(v).toLocaleString()}}
     }
   };
   if(coneChart){ coneChart.data = data; coneChart.options = options; coneChart.update(); }
