@@ -326,7 +326,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;}
 .cone-legend span{display:inline-flex;align-items:center;gap:5px;}
 .cone-legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
 .cone-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
-table.cone-table{width:100%;min-width:1130px;table-layout:fixed;font-size:12px;}
+table.cone-table{width:100%;min-width:1270px;table-layout:fixed;font-size:12px;}
 table.cone-table th, table.cone-table td{padding:5px 4px;border-right:1px solid #F0F0F2;text-align:center;}
 table.cone-table thead th{white-space:normal;line-height:1.3;word-break:keep-all;vertical-align:middle;text-align:center;font-size:11px;color:#3A3A3C;}
 table.cone-table thead tr.grp th{font-size:12px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--border);}
@@ -342,6 +342,8 @@ table.cone-table td input.note{text-align:left;}
 table.cone-table td input.has-note{color:var(--red);font-weight:600;}
 table.cone-table td:first-child, table.cone-table tr.grp th:first-child{position:sticky;left:0;background:#fff;z-index:1;}
 table.cone-table td input.cone-warn{background:var(--orange-bg);border-color:#F3C98B;}
+table.cone-table td .cone-rate{display:block;font-weight:700;color:#3B0764;font-size:12.5px;}
+table.cone-table td .cone-rate.none{color:#C7C7CC;font-weight:400;}
 table.cone-table td input.cone-hi{background:var(--red-bg);border-color:#F5B5BB;color:var(--red);font-weight:600;}
 .cone-chips{display:flex;gap:6px;flex-wrap:wrap;}
 .cone-chart-box{position:relative;height:280px;}
@@ -1006,7 +1008,7 @@ select.color-pick{padding:6px;}
       <div class="cone-wrap">
         <table class="cone-table">
           <colgroup>
-            <col style="width:116px"><col style="width:132px"><col style="width:66px"><col style="width:62px">
+            <col style="width:116px"><col style="width:132px"><col style="width:66px"><col style="width:62px"><col style="width:70px"><col style="width:62px">
             <col style="width:64px"><col style="width:64px"><col style="width:48px"><col style="width:60px">
             <col style="width:64px"><col style="width:64px"><col style="width:48px"><col style="width:60px">
             <col style="width:64px"><col style="width:64px"><col style="width:48px"><col style="width:60px">
@@ -10024,6 +10026,25 @@ function coneProd(v){
   if(/만/.test(s)) n *= 10000;
   return n;
 }
+/* 가동시간: "9.5", "9h", "9:30"(=9.5) 모두 인식 */
+function coneHrs(v){
+  if(v===null || v===undefined) return null;
+  const s = String(v).trim();
+  const hm = s.match(/^(\d+)\s*[:시]\s*(\d+)/);
+  if(hm) return parseInt(hm[1],10) + parseInt(hm[2],10)/60;
+  const m = s.match(/\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+/* 생산성 = 생산량 / 가동시간 [ton/hr] */
+function coneRate(r){
+  const p = coneProd(r.prod), h = coneHrs(r.hrs);
+  if(p===null || h===null || h<=0) return null;
+  return Math.round(p / h * 10) / 10;
+}
+function coneRateHtml(r){
+  const v = coneRate(r);
+  return v===null ? `<span class="cone-rate none">-</span>` : `<span class="cone-rate">${v.toLocaleString()}</span>`;
+}
 function coneDateLabel(s){ if(!s) return ""; const [y,m,d] = s.split("-"); return `${y.slice(2)}.${m}.${d}`; }
 
 /* 칸 색 표시: 실측이 목표에서 3mm 이상 벗어남 / 암페어 기준 초과 */
@@ -10112,7 +10133,7 @@ function coneSetCfg(k, field, v){
 function renderConeHead(){
   const cfg = coneCfg();
   document.getElementById("coneThead").innerHTML =
-    `<tr class="grp"><th rowspan="2">날짜</th><th rowspan="2">내용</th><th rowspan="2">생산량<span class="sub">(t)</span></th><th rowspan="2">죠 크러셔<span class="sub">(mm)</span></th>` +
+    `<tr class="grp"><th rowspan="2">날짜</th><th rowspan="2">내용</th><th rowspan="2">생산량<span class="sub">(t)</span></th><th rowspan="2">가동시간<span class="sub">(hr)</span></th><th rowspan="2">생산성<span class="sub">(t/hr)</span></th><th rowspan="2">죠 크러셔<span class="sub">(mm)</span></th>` +
     CONE_DEFS.map(d=> `<th colspan="4" style="border-bottom:3px solid ${d.color};border-left:3px solid ${d.color};">${d.name}</th>`).join("") +
     `<th rowspan="2">삭제</th></tr><tr>` +
     CONE_DEFS.map(d=>{ const c = cfg[d.k]; return `
@@ -10141,13 +10162,15 @@ function renderConeTable(){
   const tb = document.getElementById("coneTbody");
   const num = (id, path, v, step, cls, tdStyle)=> `<td${tdStyle?` style="${tdStyle}"`:""}><input type="number" step="${step}" inputmode="decimal" class="${cls||""}" value="${coneFmt(v)}" onchange="coneUpdate('${id}','${path}',this)"></td>`;
   if(!rows.length){
-    tb.innerHTML = `<tr class="empty-row"><td colspan="17">${coneLog().length ? "이 기간에 기록이 없습니다." : "기록이 없습니다. 위에서 날짜를 고르고 ＋ 기록 추가를 눌러주세요."}</td></tr>`;
+    tb.innerHTML = `<tr class="empty-row"><td colspan="19">${coneLog().length ? "이 기간에 기록이 없습니다." : "기록이 없습니다. 위에서 날짜를 고르고 ＋ 기록 추가를 눌러주세요."}</td></tr>`;
   } else {
     tb.innerHTML = rows.map(r=>{
       let h = `<tr data-cid="${r.id}">
         <td><input type="date" value="${r.date||""}" onchange="coneUpdate('${r.id}','date',this)"></td>
         <td><input type="text" class="note ${r.note?"has-note":""}" value="${escapeAttr(r.note||"")}" onchange="coneUpdate('${r.id}','note',this)"></td>
         <td><input type="text" inputmode="decimal" value="${escapeAttr(r.prod||"")}" onchange="coneUpdate('${r.id}','prod',this)"></td>
+        <td><input type="text" inputmode="decimal" value="${escapeAttr(r.hrs||"")}" onchange="coneUpdate('${r.id}','hrs',this)"></td>
+        <td class="cone-rate-cell">${coneRateHtml(r)}</td>
         ${num(r.id, "jaw", r.jaw, "0.1")}`;
       CONE_DEFS.forEach(d=>{
         const v = r[d.k] || {};
@@ -10166,8 +10189,12 @@ function renderConeTable(){
 function coneUpdate(id, path, el){
   const r = coneLog().find(x=> x.id===id);
   if(!r) return;
-  if(path==="date" || path==="note" || path==="prod"){
+  if(path==="date" || path==="note" || path==="prod" || path==="hrs"){
     r[path] = el.value.trim();
+    if(path==="prod" || path==="hrs"){
+      const cell = el.closest("tr") && el.closest("tr").querySelector(".cone-rate-cell");
+      if(cell) cell.innerHTML = coneRateHtml(r);
+    }
     if(path==="note") el.classList.toggle("has-note", !!r.note);
   } else if(path==="jaw"){
     r.jaw = coneNum(el.value);
@@ -10203,13 +10230,13 @@ function coneAddRow(){
     return;
   }
   const blank = ()=>({m:null, s:null, n:null, a:null});
-  const r = {id: uid("cone"), date, note:"", prod:"", jaw:null, c1:blank(), c21:blank(), c22:blank()};
+  const r = {id: uid("cone"), date, note:"", prod:"", hrs:"", jaw:null, c1:blank(), c21:blank(), c22:blank()};
   coneLog().push(r);
   saveConeRow(r);
   coneMonth = "all";
   renderCone();
   const tr = document.querySelector(`#coneTbody tr[data-cid="${r.id}"]`);
-  if(tr){ tr.scrollIntoView({behavior:"smooth", block:"center"}); const f = tr.querySelectorAll("input")[4]; if(f) f.focus(); }
+  if(tr){ tr.scrollIntoView({behavior:"smooth", block:"center"}); const f = tr.querySelectorAll("input")[3]; if(f) f.focus(); }
 }
 document.getElementById("coneAddBtn").addEventListener("click", coneAddRow);
 document.getElementById("coneMonthSel").addEventListener("change", function(){ coneMonth = this.value; renderConeTable(); renderConeChart(); });
@@ -10230,6 +10257,8 @@ function renderConeChart(){
   const pick = f=> rows.map(r=> coneNum((r[d.k]||{})[f]));
   const prod = rows.map(r=> coneProd(r.prod));
   const hasProd = prod.some(v=> v!==null);
+  const rate = rows.map(r=> coneRate(r));
+  const hasRate = rate.some(v=> v!==null);
   const data = {
     labels,
     datasets: [
@@ -10238,20 +10267,24 @@ function renderConeChart(){
       {label:`목표 ${cfg.target}mm`, data:labels.map(()=>cfg.target), borderColor:"#34C759", borderWidth:1.5, borderDash:[6,4], pointRadius:0, yAxisID:"y"},
       {label:"암페어 (A)", data:pick("a"), borderColor:"#FF6B6B", backgroundColor:"#FF6B6B", tension:.25, spanGaps:true, pointRadius:3, yAxisID:"y1"},
       {label:`기준 ${cfg.amp}A`, data:labels.map(()=>cfg.amp), borderColor:"#FF6B6B", borderWidth:1, borderDash:[2,4], pointRadius:0, yAxisID:"y1"},
-      {label:"생산량 (t)", data:prod, borderColor:"#5B21B6", backgroundColor:"#5B21B6", borderWidth:3, tension:.25, spanGaps:true,
-       pointRadius:4, pointHoverRadius:6, pointStyle:"rectRot", yAxisID:"y2"}
+      {label:"생산량 (t)", data:prod, borderColor:"rgba(139,92,246,.35)", backgroundColor:"rgba(139,92,246,.35)", borderWidth:1.5, tension:.25, spanGaps:true,
+       pointRadius:2, pointHoverRadius:4, yAxisID:"y2"},
+      {label:"생산성 (t/hr)", data:rate, borderColor:"#3B0764", backgroundColor:"#3B0764", borderWidth:3.5, tension:.25, spanGaps:true,
+       pointRadius:4.5, pointHoverRadius:7, pointStyle:"rectRot", yAxisID:"y3"}
     ]
   };
   const options = {
     responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
     plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}},
       tooltip:{filter:item=> item.raw!==null && item.raw!==undefined,
-        callbacks:{label:ctx=> `${ctx.dataset.label}: ${ctx.dataset.yAxisID==="y2" ? Number(ctx.raw).toLocaleString()+"t" : ctx.raw}`}}},
+        callbacks:{label:ctx=> `${ctx.dataset.label}: ${ctx.dataset.yAxisID==="y2" ? Number(ctx.raw).toLocaleString()+"t" : ctx.dataset.yAxisID==="y3" ? Number(ctx.raw).toLocaleString()+" t/hr" : ctx.raw}`}}},
     scales:{
       y:{position:"left", title:{display:true, text:"mm"}, grid:{color:"#F0F0F2"}},
       y1:{position:"right", title:{display:true, text:"A"}, grid:{drawOnChartArea:false}},
-      y2:{position:"right", display:hasProd, title:{display:true, text:"생산량 (t)", color:"#5B21B6", font:{weight:"bold"}}, grid:{drawOnChartArea:false},
-          ticks:{color:"#5B21B6", callback:v=> Number(v).toLocaleString()}}
+      y2:{position:"right", display:hasProd, title:{display:true, text:"생산량 (t)", color:"#A78BFA"}, grid:{drawOnChartArea:false},
+          ticks:{color:"#A78BFA", callback:v=> Number(v).toLocaleString()}},
+      y3:{position:"right", display:hasRate, title:{display:true, text:"생산성 (t/hr)", color:"#3B0764", font:{weight:"bold"}}, grid:{drawOnChartArea:false},
+          ticks:{color:"#3B0764", font:{weight:"bold"}, callback:v=> Number(v).toLocaleString()}}
     }
   };
   if(coneChart){ coneChart.data = data; coneChart.options = options; coneChart.update(); }
